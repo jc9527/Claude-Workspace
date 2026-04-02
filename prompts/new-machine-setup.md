@@ -57,3 +57,11 @@ Step 12：確認環境
 - 每台電腦的 Plan 只在該台電腦上執行
 - Claude 預設只讀取和操作 machines/[當前電腦名稱]/plans/ 下的計劃
 - 跨電腦共用的內容放在 notes/ 目錄
+
+### Menu 快捷指令
+- 用戶輸入「menu」時，列出以下內容讓用戶選：
+  - Prompts：~/GitHub/Claude-Workspace/prompts/ 下最新 3 個 .md 檔案
+  - Plans：~/GitHub/Claude-Workspace/machines/[當前電腦名稱]/plans/ 下最新 3 個 .md 檔案
+- 按檔案修改日期排序，最新在前
+- 用數字選項（1/2/3...）讓用戶選擇
+- 用戶選擇後，讀取該檔案並執行對應的操作
