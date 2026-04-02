@@ -40,6 +40,40 @@ def default_last_month_local() -> tuple[int, int]:
     return now.year, now.month - 1
 
 
+def prompt_year_month_interactive() -> tuple[int, int]:
+    """在終端機互動輸入年、月；兩欄皆留空則與未指定相同（上一曆月）。"""
+    ly, lm = default_last_month_local()
+    print(
+        f"請輸入要統計的曆月（本地時區）。兩欄皆直接 Enter = 使用上一曆月（{ly}-{lm:02d}）。",
+        file=sys.stderr,
+    )
+    while True:
+        try:
+            y_raw = input("年份 (YYYY): ").strip()
+            m_raw = input("月份 (1-12): ").strip()
+        except EOFError:
+            print("\n已取消。", file=sys.stderr)
+            raise SystemExit(130) from None
+        if not y_raw and not m_raw:
+            return default_last_month_local()
+        if not y_raw or not m_raw:
+            print("請同時輸入年份與月份，或兩者皆留空。", file=sys.stderr)
+            continue
+        try:
+            y = int(y_raw)
+            m = int(m_raw)
+        except ValueError:
+            print("請輸入有效的數字。", file=sys.stderr)
+            continue
+        if m < 1 or m > 12:
+            print("月份須為 1–12。", file=sys.stderr)
+            continue
+        if y < 1900 or y > 2100:
+            print("年份請介於 1900–2100。", file=sys.stderr)
+            continue
+        return y, m
+
+
 def month_range_local(year: int, month: int) -> tuple[str, str, str]:
     """
     該曆月在本地時區的 [月初 00:00, 下月月初 00:00)，回傳 ISO8601（含偏移）供 GitHub API。
@@ -265,14 +299,14 @@ def main() -> int:
         "--year",
         type=int,
         default=None,
-        help="報表年（本地曆月）；與 --month 皆省略則為上一曆月（本地）",
+        help="報表年（本地曆月）；與 --month 皆省略時：互動終端機會詢問，否則為上一曆月",
     )
     p.add_argument(
         "--month",
         type=int,
         default=None,
         choices=range(1, 13),
-        help="報表月 1–12；與 --year 皆省略則為上一曆月（本地）",
+        help="報表月 1–12；與 --year 皆省略時：互動終端機會詢問，否則為上一曆月",
     )
     p.add_argument(
         "--out-dir",
@@ -301,12 +335,15 @@ def main() -> int:
         return 2
 
     if args.year is None and args.month is None:
-        year, month = default_last_month_local()
+        if sys.stdin.isatty():
+            year, month = prompt_year_month_interactive()
+        else:
+            year, month = default_last_month_local()
     elif args.year is not None and args.month is not None:
         year, month = args.year, args.month
     else:
         print(
-            "請同時提供 --year 與 --month，或兩者皆省略以使用上一曆月（本地時區）。",
+            "請同時提供 --year 與 --month，或兩者皆省略（互動輸入／非互動則上一曆月）。",
             file=sys.stderr,
         )
         return 2
