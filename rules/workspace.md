@@ -32,8 +32,10 @@
 
 1. **Prompts**：列出專案根目錄 `prompts/` 下**最新 3 個** `.md` 檔（依修改時間，新→舊）。
 2. **Plans**：列出 `machines/<當前電腦目錄>/plans/` 下**最新 3 個** `.md` 檔（同上）。
-3. 以**數字選項**（1、2、3…）呈現，讓使用者選擇。
-4. 使用者選定後：**讀取該檔**並執行其對應操作或流程。
+3. **Scripts**：列出**最近執行紀錄**優先的 **3 個** `scripts/` 下 `.py`（相對路徑顯示）。紀錄存於本機 `outputs/.menu-recent-scripts.json`（不進版控）。若有效紀錄不足 3 筆，**依修改時間（mtime）** 在 `scripts/**/*.py` 中補滿缺額（略過 `__init__.py`）；與 Prompts／Plans 的「最新」邏輯一致。
+4. **選項編號**：三組**連續編號**——Prompts 佔 1–3、Plans 佔 4–6、Scripts 佔 7–9；若某一組不足 3 個檔案，後續組從緊接的數字接續（例如 Prompts 僅 2 個時，Plans 自 3 開始）。
+5. 使用者選定後：若為 **Prompts／Plans**，**讀取該檔**並執行其對應操作；若為 **Script**，依該腳本用途執行（例如 `python3 <路徑>` 並傳入合理參數）。**AI 責任**：在**實際執行**該 script 後，須寫入執行紀錄——與腳本內建方式相同：優先呼叫 `scripts/menu_state.py record <腳本路徑>`，或在可 `import menu_state` 時呼叫 `menu_state.record_run(該腳本之 __file__ 或絕對路徑)`，以免僅手動／代理執行時沒有留痕。
+6. 實作參考：`scripts/menu_state.py`（`suggest_scripts_for_menu` 供組 menu 清單）。
 
 若無法取得本機電腦名稱，可請使用者提供，或依使用者目前開啟路徑推斷 `machines/` 下對應子目錄並先確認。
 

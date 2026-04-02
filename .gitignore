@@ -2,3 +2,6 @@
 
 # GitHub Analysis 報表（本機產出，可依需求改為追蹤）
 outputs/github-analysis/
+
+# Menu 最近執行 scripts 狀態（本機）
+outputs/.menu-*.json

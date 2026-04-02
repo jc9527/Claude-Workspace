@@ -7,6 +7,11 @@
 - 本機已安裝並登入 [GitHub CLI](https://cli.github.com/)（`gh auth login`）。
 - Python 3.10+（僅用標準庫）。
 
+## Menu／執行紀錄
+
+- 本腳本在 `main()` 內會呼叫 `menu_state.record_run(__file__)`，供「menu」列出最近執行的 scripts（見 `rules/workspace.md` §4）。
+- 其他新建之 `scripts/**/*.py` 建議在 `main()` 開始處同樣記錄，或執行後由 AI 呼叫 `python3 scripts/menu_state.py record <該腳本路徑>`。
+
 ## 用法
 
 ```bash

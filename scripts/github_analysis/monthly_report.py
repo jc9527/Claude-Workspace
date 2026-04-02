@@ -253,6 +253,16 @@ def main() -> int:
     p.add_argument("--max-repos", type=int, default=50)
     args = p.parse_args()
 
+    try:
+        _scripts_dir = Path(__file__).resolve().parent.parent
+        if str(_scripts_dir) not in sys.path:
+            sys.path.insert(0, str(_scripts_dir))
+        import menu_state  # noqa: PLC0415
+
+        menu_state.record_run(__file__)
+    except Exception:
+        pass
+
     if not args.org and not args.repos:
         print("必須指定 --org 或 --repos", file=sys.stderr)
         return 2

@@ -29,7 +29,7 @@
 - 每台電腦的 Plan 只在該台電腦上執行和查看
 - 在某台電腦上時，只關注 machines/[該電腦名稱]/plans/ 下的計劃
 - notes/ 放跨電腦共用的東西
-- 輸入「menu」可快速列出最新的 prompts 和 plans 讓我選擇執行
+- 輸入「menu」可快速列出最新的 prompts、plans 與**最近執行的 scripts**（細節見 `rules/workspace.md` §4）
 
 ## 更新紀錄
 - 2026/03/30：建立此檔案
