@@ -92,11 +92,23 @@ def get_recent_scripts(limit: int = 3, root: Path | None = None) -> list[str]:
     return out
 
 
-def _mtime_fallback_py_paths(root: Path, limit: int, exclude: set[str]) -> list[str]:
+def _creation_timestamp(path: Path) -> float:
+    """盡可能使用建立時間（birthtime）；不支援或無效時退回 mtime。"""
+    try:
+        st = path.stat()
+        bt = getattr(st, "st_birthtime", None)
+        if bt is not None and float(bt) > 0:
+            return float(bt)
+        return float(st.st_mtime)
+    except OSError:
+        return 0.0
+
+
+def _iter_script_py_paths(root: Path, exclude: set[str]) -> list[tuple[Path, str]]:
     scripts_dir = root / "scripts"
     if not scripts_dir.is_dir():
         return []
-    paths: list[tuple[float, str]] = []
+    out: list[tuple[Path, str]] = []
     for p in scripts_dir.rglob("*.py"):
         if p.name == "__init__.py":
             continue
@@ -106,6 +118,28 @@ def _mtime_fallback_py_paths(root: Path, limit: int, exclude: set[str]) -> list[
             continue
         if rel in exclude:
             continue
+        out.append((p, rel))
+    return out
+
+
+def _birthtime_sort_py_paths(root: Path, limit: int, exclude: set[str]) -> list[str]:
+    """無執行紀錄時：依檔案建立時間（新→舊）。"""
+    rows = _iter_script_py_paths(root, exclude)
+    scored: list[tuple[float, str]] = []
+    for p, rel in rows:
+        t = _creation_timestamp(p)
+        if t <= 0:
+            continue
+        scored.append((t, rel))
+    scored.sort(key=lambda x: -x[0])
+    return [rel for _, rel in scored[:limit]]
+
+
+def _mtime_fallback_py_paths(root: Path, limit: int, exclude: set[str]) -> list[str]:
+    """有執行紀錄但不足額時：缺額依 mtime 補滿（與 Prompts 一致）。"""
+    rows = _iter_script_py_paths(root, exclude)
+    paths: list[tuple[float, str]] = []
+    for p, rel in rows:
         try:
             m = p.stat().st_mtime
         except OSError:
@@ -119,6 +153,8 @@ def suggest_scripts_for_menu(limit: int = 3, root: Path | None = None) -> list[s
     r = root or find_workspace_root()
     if r is None:
         return []
+    if not _load_entries(r):
+        return _birthtime_sort_py_paths(r, limit, set())
     recent = get_recent_scripts(limit=limit, root=r)
     if len(recent) >= limit:
         return recent[:limit]
