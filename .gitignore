@@ -1,1 +1,4 @@
 .claude/worktrees/
+
+# GitHub Analysis 報表（本機產出，可依需求改為追蹤）
+outputs/github-analysis/
