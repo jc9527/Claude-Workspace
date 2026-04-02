@@ -39,6 +39,7 @@
 ## 重要路徑
 - ~/GitHub/ — 所有 Git 專案
 - ~/GitHub/Claude-Workspace/ — Claude 工作空間
+- ~/GitHub/Claude-Workspace/rules/ — 工作區共用規範（多 AI 可讀）
 - ~/GitHub/devpro-tw/devpro-agent-rules/ — 公司 AI 規範（devpro-agent-rules）
 - ~/.claude/skills/ — Claude Code Skills
 - ~/.claude/CLAUDE.md — 全域偏好設定

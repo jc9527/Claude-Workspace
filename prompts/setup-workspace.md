@@ -30,3 +30,4 @@ brew install gh
 - Claude-Workspace 是私有 repo（jc9527），需要 GitHub 登入權限
 - devpro-agent-rules 是公司 repo（devpro-tw），需要組織存取權限
 - GStack 安裝需要 bun，會自動安裝
+- 工作區共通規範（目錄、命名、menu 等）：clone 後見 repo 內 `rules/README.md`
