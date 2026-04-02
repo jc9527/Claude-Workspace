@@ -9,6 +9,12 @@
 - **原則**：**不需要 AI 介入**即可在機器上重複執行。
 - **檔名**：`snake_case`，例如 `setup_machine.py`、`monthly_report.py`。
 
+### Scripts 執行規則
+
+- 當 Script 輸出檔案已存在時，預設不覆蓋，需向用戶確認是否重新產生
+- 使用 `--force` 參數可強制重新產生
+- 此規則適用於所有會產生輸出檔案的 Script
+
 ## Prompts（`prompts/`）
 
 - **技術**：**Markdown（`.md`）**。

@@ -496,6 +496,11 @@ def main() -> int:
         action="store_true",
         help="略過執行前 5 秒等待（排程／自動化用）",
     )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="若輸出目錄已存在有檔案，強制覆蓋重新產生",
+    )
     args = p.parse_args()
 
     try:
@@ -577,6 +582,16 @@ def main() -> int:
         if args.out_dir
         else Path("outputs") / "github-analysis" / tag
     )
+
+    if out.exists() and any(out.iterdir()):
+        if not args.force:
+            print(
+                f"報告已存在於 {out}，如需重新產生請加 --force 參數",
+                file=sys.stderr,
+            )
+            return 0
+        print(f"--force 指定，覆蓋已存在的報告：{out}", file=sys.stderr)
+
     out.mkdir(parents=True, exist_ok=True)
 
     (out / "flat.json").write_text(
