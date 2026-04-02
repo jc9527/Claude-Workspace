@@ -12,6 +12,7 @@
 ## 使用方式
 
 - 新任務開始時：請 AI **先讀** `rules/README.md`，再依需求開啟上述檔案。
+- 輸出「menu」且 Scripts 需附**執行時間／檔案 mtime** 時，可用 `scripts/menu_state.py` 的 `suggest_scripts_for_menu_rows`（見 `workspace.md` §4）。
 - 與個人語氣、公司背景相關的偏好：見 `notes/johnny-preferences.md`；產品開發規範：見公司 `devpro-agent-rules`／各 repo 的 `AGENTS.md`。
 
 ## 更新原則

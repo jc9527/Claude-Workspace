@@ -11,6 +11,7 @@
 
 - 本腳本在 `main()` 內會呼叫 `menu_state.record_run(__file__)`，供「menu」列出最近執行的 scripts（見 `rules/workspace.md` §4）。
 - 其他新建之 `scripts/**/*.py` 建議在 `main()` 開始處同樣記錄，或執行後由 AI 呼叫 `python3 scripts/menu_state.py record <該腳本路徑>`。
+- Menu 若需顯示「最近執行」與「檔案 mtime」欄位，見同層上一級 `menu_state.suggest_scripts_for_menu_rows`。
 
 ## 用法
 

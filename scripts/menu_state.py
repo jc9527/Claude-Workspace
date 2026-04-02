@@ -27,6 +27,10 @@ def state_path(root: Path) -> Path:
     return root / "outputs" / ".menu-recent-scripts.json"
 
 
+def mtime_to_utc_iso(mtime: float) -> str:
+    return datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _load_entries(root: Path) -> list[dict[str, Any]]:
     sp = state_path(root)
     if not sp.is_file():
@@ -46,6 +50,16 @@ def _save_entries(root: Path, entries: list[dict[str, Any]]) -> None:
     sp.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _live_file_mtime_utc(root: Path, rel: str) -> str | None:
+    p = root / rel
+    try:
+        if not p.is_file():
+            return None
+        return mtime_to_utc_iso(p.stat().st_mtime)
+    except OSError:
+        return None
+
+
 def record_run(script_file: str | Path) -> bool:
     path = Path(script_file).resolve()
     root = find_workspace_root(path)
@@ -60,16 +74,25 @@ def record_run(script_file: str | Path) -> bool:
         return False
     if Path(norm).suffix.lower() != ".py":
         return False
+    try:
+        file_mtime_utc = mtime_to_utc_iso(path.stat().st_mtime)
+    except OSError:
+        file_mtime_utc = ""
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     entries = _load_entries(root)
     found = False
     for e in entries:
         if e.get("path") == norm:
             e["last_run_at"] = now
+            if file_mtime_utc:
+                e["file_mtime_utc"] = file_mtime_utc
             found = True
             break
     if not found:
-        entries.append({"path": norm, "last_run_at": now})
+        row: dict[str, Any] = {"path": norm, "last_run_at": now}
+        if file_mtime_utc:
+            row["file_mtime_utc"] = file_mtime_utc
+        entries.append(row)
     _save_entries(root, entries)
     return True
 
@@ -149,7 +172,8 @@ def _mtime_fallback_py_paths(root: Path, limit: int, exclude: set[str]) -> list[
     return [rel for _, rel in paths[:limit]]
 
 
-def suggest_scripts_for_menu(limit: int = 3, root: Path | None = None) -> list[str]:
+def suggest_script_paths_ordered(limit: int = 3, root: Path | None = None) -> list[str]:
+    """組出 menu 用到的 script 相對路徑順序（不含時間欄位）。"""
     r = root or find_workspace_root()
     if r is None:
         return []
@@ -170,6 +194,33 @@ def suggest_scripts_for_menu(limit: int = 3, root: Path | None = None) -> list[s
         if need <= 0:
             break
     return recent[:limit]
+
+
+def suggest_scripts_for_menu(limit: int = 3, root: Path | None = None) -> list[str]:
+    return suggest_script_paths_ordered(limit=limit, root=root)
+
+
+def suggest_scripts_for_menu_rows(
+    limit: int = 3, root: Path | None = None
+) -> list[dict[str, Any]]:
+    """每筆：path、last_run_at（無則 None）、file_mtime_utc（列表當下之檔案 mtime UTC ISO）。"""
+    r = root or find_workspace_root()
+    if r is None:
+        return []
+    paths = suggest_script_paths_ordered(limit=limit, root=r)
+    by_path = {str(e.get("path")): e for e in _load_entries(r) if e.get("path")}
+    rows: list[dict[str, Any]] = []
+    for rel in paths:
+        ent = by_path.get(rel)
+        last_run = str(ent["last_run_at"]) if ent and ent.get("last_run_at") else None
+        rows.append(
+            {
+                "path": rel,
+                "last_run_at": last_run,
+                "file_mtime_utc": _live_file_mtime_utc(r, rel),
+            }
+        )
+    return rows
 
 
 def main() -> int:
