@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, tzinfo
 from pathlib import Path
 from typing import Any
 
@@ -27,26 +27,34 @@ def run_gh(args: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
-def default_last_month_utc() -> tuple[int, int]:
-    """上一個曆月（UTC），供未指定 --year/--month 時使用。"""
-    now = datetime.now(timezone.utc)
+def _local_tzinfo() -> tzinfo:
+    """系統本地時區（用於曆月邊界）。"""
+    return datetime.now().astimezone().tzinfo  # type: ignore[return-value]
+
+
+def default_last_month_local() -> tuple[int, int]:
+    """上一個曆月（本地時區），供未指定 --year/--month 時使用。"""
+    now = datetime.now().astimezone()
     if now.month == 1:
         return now.year - 1, 12
     return now.year, now.month - 1
 
 
-def month_range_utc(year: int, month: int) -> tuple[str, str, str]:
-    start = datetime(year, month, 1, tzinfo=timezone.utc)
+def month_range_local(year: int, month: int) -> tuple[str, str, str]:
+    """
+    該曆月在本地時區的 [月初 00:00, 下月月初 00:00)，回傳 ISO8601（含偏移）供 GitHub API。
+    """
+    tz = _local_tzinfo()
+    start = datetime(year, month, 1, 0, 0, 0, tzinfo=tz)
     if month == 12:
-        end = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+        end = datetime(year + 1, 1, 1, 0, 0, 0, tzinfo=tz)
     else:
-        end = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+        end = datetime(year, month + 1, 1, 0, 0, 0, tzinfo=tz)
     tag = f"{year:04d}-{month:02d}"
-    return (
-        start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        end.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        tag,
-    )
+    # 使用 isoformat 讓 since/until 帶本地偏移，與曆月邊界一致
+    since_iso = start.isoformat(timespec="seconds")
+    until_iso = end.isoformat(timespec="seconds")
+    return since_iso, until_iso, tag
 
 
 def discover_repos_fixed(org: str | None, max_repos: int) -> list[str]:
@@ -257,14 +265,14 @@ def main() -> int:
         "--year",
         type=int,
         default=None,
-        help="報表年（UTC 曆月）；與 --month 皆省略則為上個月（UTC）",
+        help="報表年（本地曆月）；與 --month 皆省略則為上一曆月（本地）",
     )
     p.add_argument(
         "--month",
         type=int,
         default=None,
         choices=range(1, 13),
-        help="報表月 1–12；與 --year 皆省略則為上個月（UTC）",
+        help="報表月 1–12；與 --year 皆省略則為上一曆月（本地）",
     )
     p.add_argument(
         "--out-dir",
@@ -293,12 +301,12 @@ def main() -> int:
         return 2
 
     if args.year is None and args.month is None:
-        year, month = default_last_month_utc()
+        year, month = default_last_month_local()
     elif args.year is not None and args.month is not None:
         year, month = args.year, args.month
     else:
         print(
-            "請同時提供 --year 與 --month，或兩者皆省略以使用上個月（UTC）。",
+            "請同時提供 --year 與 --month，或兩者皆省略以使用上一曆月（本地時區）。",
             file=sys.stderr,
         )
         return 2
@@ -308,7 +316,7 @@ def main() -> int:
     else:
         scope = f"org={args.org!r}（最多 {args.max_repos} 個 repo）"
     print(
-        f"即將查詢 GitHub 活動：{year}-{month:02d}（UTC 月初～下月月初）\n"
+        f"即將查詢 GitHub 活動：{year}-{month:02d}（本地月初 00:00～下月月初 00:00）\n"
         f"範圍：{scope}\n"
         "5 秒後開始…（可 Ctrl+C 取消）",
         file=sys.stderr,
@@ -316,7 +324,7 @@ def main() -> int:
     if not args.no_wait:
         time.sleep(5)
 
-    since_iso, until_iso, tag = month_range_utc(year, month)
+    since_iso, until_iso, tag = month_range_local(year, month)
     since_day = since_iso[:10]
     until_day = until_iso[:10]
 
