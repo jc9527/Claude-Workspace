@@ -15,7 +15,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, tzinfo
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, TextIO
 
 
 def run_gh(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -40,38 +40,213 @@ def default_last_month_local() -> tuple[int, int]:
     return now.year, now.month - 1
 
 
+def _open_dev_tty_rw() -> tuple[TextIO, TextIO] | None:
+    """macOS/Linux：開啟控制終端機，Cursor 等環境下 stdin 非 TTY 仍可互動。"""
+    try:
+        fin = open("/dev/tty", "r", encoding="utf-8", errors="replace")
+        fout = open("/dev/tty", "w", encoding="utf-8", errors="replace")
+        return fin, fout
+    except OSError:
+        return None
+
+
+def _parse_year_month_prompt_lines(y_raw: str, m_raw: str) -> tuple[int, int] | str:
+    """
+    回傳 (year, month)，或內部常字串：
+    '__default__' = 兩者皆空；'__incomplete__' = 只填一邊。
+    """
+    if not y_raw and not m_raw:
+        return "__default__"
+    if not y_raw or not m_raw:
+        return "__incomplete__"
+    try:
+        y = int(y_raw)
+        m = int(m_raw)
+    except ValueError:
+        return "請輸入有效的數字。"
+    if m < 1 or m > 12:
+        return "月份須為 1–12。"
+    if y < 1900 or y > 2100:
+        return "年份請介於 1900–2100。"
+    return y, m
+
+
 def prompt_year_month_interactive() -> tuple[int, int]:
-    """在終端機互動輸入年、月；兩欄皆留空則與未指定相同（上一曆月）。"""
+    """
+    互動輸入年、月。
+    優先使用 /dev/tty（Cursor / 非 TTY stdin 仍可問答）；否則若 stdin 為 TTY 用 input()；
+    皆不可互動則退回上一曆月（排程、無終端機）。
+    """
     ly, lm = default_last_month_local()
-    print(
-        f"請輸入要統計的曆月（本地時區）。兩欄皆直接 Enter = 使用上一曆月（{ly}-{lm:02d}）。",
-        file=sys.stderr,
+    banner = (
+        f"請輸入要統計的曆月（本地時區）。兩欄皆直接 Enter = 使用上一曆月（{ly}-{lm:02d}）。"
     )
-    while True:
+
+    def loop(
+        read_line: Callable[[], str],
+        write_prompt: Callable[[str], None],
+        flush_out: Callable[[], None],
+    ) -> tuple[int, int]:
+        """read_line：遇上 EOF（空字串）應自行印訊息並 raise SystemExit(130)。"""
+        write_prompt(banner + "\n")
+        flush_out()
+        while True:
+            write_prompt("年份 (YYYY): ")
+            flush_out()
+            y_raw = read_line().strip()
+            write_prompt("月份 (1-12): ")
+            flush_out()
+            m_raw = read_line().strip()
+            parsed = _parse_year_month_prompt_lines(y_raw, m_raw)
+            if parsed == "__default__":
+                return default_last_month_local()
+            if parsed == "__incomplete__":
+                print("請同時輸入年份與月份，或兩者皆留空。", file=sys.stderr, flush=True)
+                continue
+            if isinstance(parsed, str):
+                print(parsed, file=sys.stderr, flush=True)
+                continue
+            return parsed
+
+    tty = _open_dev_tty_rw()
+    if tty is not None:
+        fin, fout = tty
         try:
-            y_raw = input("年份 (YYYY): ").strip()
-            m_raw = input("月份 (1-12): ").strip()
-        except EOFError:
-            print("\n已取消。", file=sys.stderr)
-            raise SystemExit(130) from None
-        if not y_raw and not m_raw:
-            return default_last_month_local()
-        if not y_raw or not m_raw:
-            print("請同時輸入年份與月份，或兩者皆留空。", file=sys.stderr)
-            continue
+
+            def rl() -> str:
+                line = fin.readline()
+                if line == "":
+                    print("\n已取消。", file=sys.stderr, flush=True)
+                    raise SystemExit(130) from None
+                return line
+
+            def wp(s: str) -> None:
+                fout.write(s)
+
+            def fo() -> None:
+                fout.flush()
+
+            return loop(rl, wp, fo)
+        finally:
+            fin.close()
+            fout.close()
+
+    if sys.stdin.isatty():
+
+        def rl_std() -> str:
+            line = sys.stdin.readline()
+            if line == "":
+                print("\n已取消。", file=sys.stderr, flush=True)
+                raise SystemExit(130) from None
+            return line
+
+        def wp_std(s: str) -> None:
+            sys.stderr.write(s)
+
+        def fo_std() -> None:
+            sys.stderr.flush()
+
+        return loop(rl_std, wp_std, fo_std)
+
+    return default_last_month_local()
+
+
+def prompt_scope_interactive() -> tuple[str | None, str | None]:
+    """
+    互動輸入查詢範圍，回傳 (org, repos_csv) 擇一非 None。
+    org：組織登入名；repos_csv：逗號分隔 owner/repo。
+    無法連終端機互動時回傳 (None, None)，由呼叫端結束並要求 --org/--repos。
+    """
+
+    def scope_loop(
+        read_line: Callable[[], str],
+        write_prompt: Callable[[str], None],
+        flush_out: Callable[[], None],
+    ) -> tuple[str | None, str | None]:
+        while True:
+            write_prompt(
+                "請選擇查詢範圍：o = 整個組織（稍後輸入組織登入名），"
+                "r = 指定 repo 清單（逗號分隔 owner/repo）。\n"
+                "選項 (o/r): "
+            )
+            flush_out()
+            mode = read_line().strip().lower()
+            if mode in ("o", "1", "org", "組織"):
+                write_prompt("組織登入名: ")
+                flush_out()
+                org = read_line().strip()
+                if not org:
+                    print("組織名不可為空。", file=sys.stderr, flush=True)
+                    continue
+                return (org, None)
+            if mode in ("r", "2", "repos", "repo"):
+                write_prompt("repos（逗號分隔，例 octocat/Hello-World,octocat/Spoon-Knife）: ")
+                flush_out()
+                raw = read_line().strip()
+                parts = [x.strip() for x in raw.split(",") if x.strip()]
+                if not parts:
+                    print("請至少輸入一個 owner/repo。", file=sys.stderr, flush=True)
+                    continue
+                bad: str | None = None
+                for p in parts:
+                    if p.count("/") != 1 or "/" not in p or p.startswith("/") or p.endswith("/"):
+                        bad = p
+                        break
+                    a, b = p.split("/", 1)
+                    if not a or not b:
+                        bad = p
+                        break
+                if bad is not None:
+                    print(
+                        f"格式須為 owner/repo（僅一個斜線）：{bad!r}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    continue
+                return (None, ",".join(parts))
+            print("請輸入 o（組織）或 r（repos）。", file=sys.stderr, flush=True)
+
+    tty = _open_dev_tty_rw()
+    if tty is not None:
+        fin, fout = tty
         try:
-            y = int(y_raw)
-            m = int(m_raw)
-        except ValueError:
-            print("請輸入有效的數字。", file=sys.stderr)
-            continue
-        if m < 1 or m > 12:
-            print("月份須為 1–12。", file=sys.stderr)
-            continue
-        if y < 1900 or y > 2100:
-            print("年份請介於 1900–2100。", file=sys.stderr)
-            continue
-        return y, m
+
+            def rl() -> str:
+                line = fin.readline()
+                if line == "":
+                    print("\n已取消。", file=sys.stderr, flush=True)
+                    raise SystemExit(130) from None
+                return line
+
+            def wp(s: str) -> None:
+                fout.write(s)
+
+            def fo() -> None:
+                fout.flush()
+
+            return scope_loop(rl, wp, fo)
+        finally:
+            fin.close()
+            fout.close()
+
+    if sys.stdin.isatty():
+
+        def rl_std() -> str:
+            line = sys.stdin.readline()
+            if line == "":
+                print("\n已取消。", file=sys.stderr, flush=True)
+                raise SystemExit(130) from None
+            return line
+
+        def wp_std(s: str) -> None:
+            sys.stderr.write(s)
+
+        def fo_std() -> None:
+            sys.stderr.flush()
+
+        return scope_loop(rl_std, wp_std, fo_std)
+
+    return None, None
 
 
 def month_range_local(year: int, month: int) -> tuple[str, str, str]:
@@ -290,23 +465,26 @@ def write_md_summary(path: Path, rows: list[dict[str, Any]], label: str) -> None
 
 def main() -> int:
     p = argparse.ArgumentParser(description="GitHub monthly activity report (gh CLI)")
-    p.add_argument("--org", help="GitHub org login")
+    p.add_argument(
+        "--org",
+        help="GitHub org login；與 --repos 擇一；皆省略時經 /dev/tty 或 TTY stdin 互動詢問範圍",
+    )
     p.add_argument(
         "--repos",
-        help="Comma-separated owner/repo list (skips org discovery)",
+        help="Comma-separated owner/repo list (skips org discovery)；與 --org 擇一；皆省略時互動詢問",
     )
     p.add_argument(
         "--year",
         type=int,
         default=None,
-        help="報表年（本地曆月）；與 --month 皆省略時：互動終端機會詢問，否則為上一曆月",
+        help="報表年（本地曆月）；與 --month 皆省略時：優先經 /dev/tty 詢問（含 Cursor 非 TTY stdin），否則 stdin 為 TTY 時詢問；皆不可則上一曆月",
     )
     p.add_argument(
         "--month",
         type=int,
         default=None,
         choices=range(1, 13),
-        help="報表月 1–12；與 --year 皆省略時：互動終端機會詢問，否則為上一曆月",
+        help="報表月 1–12；與 --year 皆省略時：同上互動規則；皆不可則上一曆月",
     )
     p.add_argument(
         "--out-dir",
@@ -330,28 +508,35 @@ def main() -> int:
     except Exception:
         pass
 
-    if not args.org and not args.repos:
-        print("必須指定 --org 或 --repos", file=sys.stderr)
-        return 2
+    org: str | None = args.org
+    repos_csv: str | None = args.repos
+    if not org and not repos_csv:
+        o, r = prompt_scope_interactive()
+        if o is None and r is None:
+            print(
+                "無法互動詢問查詢範圍（無 /dev/tty 且 stdin 非終端機）。"
+                "請指定 --org 或 --repos。",
+                file=sys.stderr,
+            )
+            return 2
+        org = o
+        repos_csv = r
 
     if args.year is None and args.month is None:
-        if sys.stdin.isatty():
-            year, month = prompt_year_month_interactive()
-        else:
-            year, month = default_last_month_local()
+        year, month = prompt_year_month_interactive()
     elif args.year is not None and args.month is not None:
         year, month = args.year, args.month
     else:
         print(
-            "請同時提供 --year 與 --month，或兩者皆省略（互動輸入／非互動則上一曆月）。",
+            "請同時提供 --year 與 --month，或兩者皆省略（互動輸入；無法連終端則上一曆月）。",
             file=sys.stderr,
         )
         return 2
 
-    if args.repos:
-        scope = f"repos={args.repos}"
+    if repos_csv:
+        scope = f"repos={repos_csv}"
     else:
-        scope = f"org={args.org!r}（最多 {args.max_repos} 個 repo）"
+        scope = f"org={org!r}（最多 {args.max_repos} 個 repo）"
     wait_msg = (
         "立即開始（已指定 --no-wait）。"
         if args.no_wait
@@ -371,10 +556,10 @@ def main() -> int:
     until_day = until_iso[:10]
 
     repos: list[str] = []
-    if args.repos:
-        repos = [x.strip() for x in args.repos.split(",") if x.strip()]
+    if repos_csv:
+        repos = [x.strip() for x in repos_csv.split(",") if x.strip()]
     else:
-        repos = discover_repos_fixed(args.org, args.max_repos)
+        repos = discover_repos_fixed(org, args.max_repos)
 
     flat: list[dict[str, Any]] = []
     for full in repos:
@@ -382,9 +567,7 @@ def main() -> int:
 
     try:
         flat.extend(
-            fetch_merged_prs(
-                args.org if args.org else None, repos, since_day, until_day
-            )
+            fetch_merged_prs(org if org else None, repos, since_day, until_day)
         )
     except RuntimeError as e:
         print(f"警告：PR 搜尋失敗（仍輸出 commits）：{e}", file=sys.stderr)

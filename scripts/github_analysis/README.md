@@ -17,10 +17,11 @@
 
 ```bash
 cd /path/to/Claude-Workspace
-# 未指定 --year/--month 時：在「真正的終端機」（stdin 是 TTY）會**互動詢問**年、月；兩欄皆直接 Enter = 上一曆月。排程／管道等非互動環境則自動用上一曆月。
-python3 scripts/github_analysis/monthly_report.py --org YOUR_ORG
+# 未指定 --org/--repos 時：會先**互動詢問**查詢範圍（o=組織 / r=逗號分隔 repos）；無終端機時須自行傳入 --org 或 --repos。
+# 未指定 --year/--month 時：會再互動詢問年、月（同樣優先 /dev/tty）；兩欄皆 Enter = 上一曆月；完全無終端時年月才預設上一曆月。
+python3 scripts/github_analysis/monthly_report.py
 
-# 指定月份，或略過等待（排程用）
+# 或明確指定組織／月份，或略過等待（排程用）
 python3 scripts/github_analysis/monthly_report.py \
   --org YOUR_ORG \
   --year 2026 --month 3 \
@@ -33,9 +34,9 @@ python3 scripts/github_analysis/monthly_report.py \
 
 | 參數 | 說明 |
 |------|------|
-| `--org` | 組織登入名（與 `--repos` 擇一） |
-| `--repos` | 逗號分隔的 `owner/repo` 清單，精簡 API 次數 |
-| `--year` / `--month` | 報表曆月（**本地**月初 00:00～下月月初）；**兩者皆省略**：互動終端機會詢問年月，否則用上一曆月；只給其中一個會報錯 |
+| `--org` | 組織登入名（與 `--repos` 擇一；**皆省略**時互動詢問範圍，無終端則錯誤退出） |
+| `--repos` | 逗號分隔的 `owner/repo` 清單；同上 |
+| `--year` / `--month` | 報表曆月（**本地**月初 00:00～下月月初）；**兩者皆省略**：優先 `/dev/tty` 詢問（IDE 內亦常可用），否則 stdin 為 TTY 時詢問；皆不可時用上一曆月；只給其中一個會報錯 |
 | `--no-wait` | 略過執行前 5 秒等待 |
 | `--out-dir` | 輸出目錄（預設 `outputs/github-analysis/<YYYY-MM>`） |
 | `--max-repos` | 掃描 repo 上限（預設 50，避免大型組織過慢） |
