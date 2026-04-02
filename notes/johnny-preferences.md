@@ -24,5 +24,10 @@
 - 工作目錄：~/GitHub/Claude-Workspace/
 - 公司規範：devpro-tw/devpro-agent-rules
 
+## 工作規則
+- 每台電腦的 Plan 只在該台電腦上執行和查看
+- 在某台電腦上時，只關注 machines/[該電腦名稱]/plans/ 下的計劃
+- notes/ 放跨電腦共用的東西
+
 ## 更新紀錄
 - 2026/03/30：建立此檔案

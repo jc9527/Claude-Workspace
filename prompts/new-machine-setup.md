@@ -52,3 +52,8 @@ Step 12：確認環境
 - Plan 編號 plan-XXX-描述.md
 - Commit 規範 feat/refactor/docs/fix
 - 所有文件使用繁體中文
+
+### 工作規則
+- 每台電腦的 Plan 只在該台電腦上執行
+- Claude 預設只讀取和操作 machines/[當前電腦名稱]/plans/ 下的計劃
+- 跨電腦共用的內容放在 notes/ 目錄
