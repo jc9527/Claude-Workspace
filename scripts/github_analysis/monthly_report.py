@@ -11,6 +11,7 @@ import csv
 import json
 import subprocess
 import sys
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,6 +25,14 @@ def run_gh(args: list[str]) -> subprocess.CompletedProcess[str]:
         text=True,
         check=False,
     )
+
+
+def default_last_month_utc() -> tuple[int, int]:
+    """上一個曆月（UTC），供未指定 --year/--month 時使用。"""
+    now = datetime.now(timezone.utc)
+    if now.month == 1:
+        return now.year - 1, 12
+    return now.year, now.month - 1
 
 
 def month_range_utc(year: int, month: int) -> tuple[str, str, str]:
@@ -244,13 +253,29 @@ def main() -> int:
         "--repos",
         help="Comma-separated owner/repo list (skips org discovery)",
     )
-    p.add_argument("--year", type=int, required=True)
-    p.add_argument("--month", type=int, required=True, choices=range(1, 13))
+    p.add_argument(
+        "--year",
+        type=int,
+        default=None,
+        help="報表年（UTC 曆月）；與 --month 皆省略則為上個月（UTC）",
+    )
+    p.add_argument(
+        "--month",
+        type=int,
+        default=None,
+        choices=range(1, 13),
+        help="報表月 1–12；與 --year 皆省略則為上個月（UTC）",
+    )
     p.add_argument(
         "--out-dir",
         help="Output directory (default: outputs/github-analysis/<YYYY-MM> under cwd)",
     )
     p.add_argument("--max-repos", type=int, default=50)
+    p.add_argument(
+        "--no-wait",
+        action="store_true",
+        help="略過執行前 5 秒等待（排程／自動化用）",
+    )
     args = p.parse_args()
 
     try:
@@ -267,7 +292,31 @@ def main() -> int:
         print("必須指定 --org 或 --repos", file=sys.stderr)
         return 2
 
-    since_iso, until_iso, tag = month_range_utc(args.year, args.month)
+    if args.year is None and args.month is None:
+        year, month = default_last_month_utc()
+    elif args.year is not None and args.month is not None:
+        year, month = args.year, args.month
+    else:
+        print(
+            "請同時提供 --year 與 --month，或兩者皆省略以使用上個月（UTC）。",
+            file=sys.stderr,
+        )
+        return 2
+
+    if args.repos:
+        scope = f"repos={args.repos}"
+    else:
+        scope = f"org={args.org!r}（最多 {args.max_repos} 個 repo）"
+    print(
+        f"即將查詢 GitHub 活動：{year}-{month:02d}（UTC 月初～下月月初）\n"
+        f"範圍：{scope}\n"
+        "5 秒後開始…（可 Ctrl+C 取消）",
+        file=sys.stderr,
+    )
+    if not args.no_wait:
+        time.sleep(5)
+
+    since_iso, until_iso, tag = month_range_utc(year, month)
     since_day = since_iso[:10]
     until_day = until_iso[:10]
 

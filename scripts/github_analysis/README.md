@@ -17,10 +17,14 @@
 
 ```bash
 cd /path/to/Claude-Workspace
+# 未指定年月時：預設「上一曆月」（UTC）；執行 API 前會在 stderr 顯示摘要並等待 5 秒（可 Ctrl+C）
+python3 scripts/github_analysis/monthly_report.py --org YOUR_ORG
+
+# 指定月份，或略過等待（排程用）
 python3 scripts/github_analysis/monthly_report.py \
   --org YOUR_ORG \
   --year 2026 --month 3 \
-  --out-dir outputs/github-analysis
+  --no-wait
 ```
 
 私有組織／Repo 需已授權目前 `gh` 帳號。
@@ -31,7 +35,8 @@ python3 scripts/github_analysis/monthly_report.py \
 |------|------|
 | `--org` | 組織登入名（與 `--repos` 擇一） |
 | `--repos` | 逗號分隔的 `owner/repo` 清單，精簡 API 次數 |
-| `--year` / `--month` | 報表月份（UTC 月初至下月月初） |
+| `--year` / `--month` | 報表曆月（UTC）；**兩者皆省略時預設為上個月（UTC）**；只給其中一個會報錯 |
+| `--no-wait` | 略過執行前 5 秒等待 |
 | `--out-dir` | 輸出目錄（預設 `outputs/github-analysis/<YYYY-MM>`） |
 | `--max-repos` | 掃描 repo 上限（預設 50，避免大型組織過慢） |
 
