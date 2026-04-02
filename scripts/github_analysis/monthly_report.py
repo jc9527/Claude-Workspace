@@ -315,10 +315,15 @@ def main() -> int:
         scope = f"repos={args.repos}"
     else:
         scope = f"org={args.org!r}（最多 {args.max_repos} 個 repo）"
+    wait_msg = (
+        "立即開始（已指定 --no-wait）。"
+        if args.no_wait
+        else "5 秒後開始…（可 Ctrl+C 取消）"
+    )
     print(
         f"即將查詢 GitHub 活動：{year}-{month:02d}（本地月初 00:00～下月月初 00:00）\n"
         f"範圍：{scope}\n"
-        "5 秒後開始…（可 Ctrl+C 取消）",
+        f"{wait_msg}",
         file=sys.stderr,
     )
     if not args.no_wait:
