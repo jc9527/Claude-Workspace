@@ -58,6 +58,25 @@ Step 12：確認環境
 - Claude 預設只讀取和操作 machines/[當前電腦名稱]/plans/ 下的計劃
 - 跨電腦共用的內容放在 notes/ 目錄
 
+### Prompts 與 Scripts 分工原則
+
+**Scripts（scripts/ 目錄）— 機器可直接執行的工作：**
+- 用 Python (.py) 撰寫，確保跨平台（Mac/Windows/Linux）
+- 適用場景：收集電腦資訊、安裝工具、建立目錄結構、抓取資料、產生報表、檔案操作
+- 不需要 AI 介入，任何電腦都能直接跑
+- 命名規則：snake_case，如 setup_machine.py、monthly_report.py
+
+**Prompts（prompts/ 目錄）— 需要 AI 判斷的工作：**
+- 用 Markdown (.md) 撰寫
+- 適用場景：需求分析、系統設計、Code Review、文件撰寫、決策建議
+- 需要 AI 理解上下文和做判斷
+- 命名規則：kebab-case，如 new-machine-setup.md、code-review.md
+
+**混合型工作的處理方式：**
+- 資料收集用 Script，分析摘要用 Prompt
+- 例如：Script 抓取 GitHub commits 資料（JSON/CSV） → Prompt 讓 AI 分析趨勢並產出月報
+- 優先腳本化：能寫成 Script 的部分就寫成 Script，只留真正需要 AI 的部分在 Prompt
+
 ### Menu 快捷指令
 - 用戶輸入「menu」時，列出以下內容讓用戶選：
   - Prompts：~/GitHub/Claude-Workspace/prompts/ 下最新 3 個 .md 檔案
