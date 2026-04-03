@@ -23,3 +23,38 @@ menu 是 Claude-Workspace 的快速導航指令，讓用戶快速存取常用的
 7. 實作參考：完整輸出見 `scripts/menu.py`；Scripts 排序與時間欄見 `scripts/menu_state.py`（`suggest_scripts_for_menu` 僅路徑；**需附時間欄**時用 `suggest_scripts_for_menu_rows`）。
 
 若無法取得本機電腦名稱，可請使用者提供，或依使用者目前開啟路徑推斷 `machines/` 下對應子目錄並先確認。
+
+## 目錄瀏覽功能
+
+menu 除了列出 Prompts、Plans、Scripts 外，最後一個選項為「目錄瀏覽」。
+
+### 操作流程
+1. 用戶輸入 menu → 顯示原有選項 + 最後一項「📁 瀏覽 Workspace 目錄」
+2. 用戶選擇該項 → 列出 Claude-Workspace 的第一層目錄（有編號），例如：
+   ```
+   📁 Workspace 目錄
+   1. prompts/
+   2. notes/
+   3. machines/
+   4. rules/
+   5. scripts/
+   6. outputs/
+   0. ← 返回 menu
+   ```
+3. 用戶選一個目錄編號 → 列出該目錄下的檔案和子目錄（有編號），例如：
+   ```
+   📁 rules/
+   1. README.md (1.2 KB)
+   2. workspace.md (3.5 KB)
+   3. prompts-and-scripts.md (2.1 KB)
+   4. menu.md (1.8 KB)
+   0. ← 返回上層
+   ```
+4. 用戶選一個檔案編號 → 讀取該檔案內容或執行（依副檔名判斷）
+5. 選 0 返回上層，可層層退回到 menu
+
+### 規則
+- 只瀏覽 Claude-Workspace 目錄，不允許跳出
+- 隱藏 .git/ 和 .claude/ 目錄
+- 子目錄用 / 結尾標示，檔案顯示大小
+- 0 永遠代表返回上層/返回 menu
