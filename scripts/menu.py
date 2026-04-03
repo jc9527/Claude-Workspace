@@ -69,7 +69,7 @@ def _print_table(headers: list[str], rows: list[list[str]]) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="列印 Claude-Workspace menu（見 rules/workspace.md §4）")
+    ap = argparse.ArgumentParser(description="列印 Claude-Workspace menu（見 rules/menu.md）")
     ap.add_argument(
         "--machine",
         default=None,
