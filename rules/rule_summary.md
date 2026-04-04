@@ -20,3 +20,6 @@
 
 ### 5. idea-process.md — Idea 處理流程
 任何 Idea 討論後，**絕對不可直接執行**。必須先提供：目標、步驟、複雜度（Low/Medium/High）、預估時間、所需工具、風險。等待用戶確認後才可實作。
+
+### 6. multi-agent-workflow.md — Multi-Agent 協作流程
+定義從需求到交付的標準階段順序：BA → SA → SD → Quoter → Dev → QA → DevOps。SA 階段才確定 Repos 與 Applications 的劃分。Coordinator 統一入口，先提案後執行。
