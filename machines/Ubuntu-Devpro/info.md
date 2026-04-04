@@ -23,6 +23,7 @@
 | Python | 3.12.x |
 | Claude Code | 2.1.92 |
 | Cursor Agent | 2026.03.30-a5d3e17 |
+| .NET SDK | 8.0.125 |
 | Node.js | v22.22.2 |
 
 ## GitHub 帳號
@@ -38,4 +39,4 @@
 
 ## 更新紀錄
 
-- 2026/04/05：建立此檔案、主機名從 devpro-VMware-Virtual-Platform 改為 Ubuntu-Devpro、安裝 Cursor Agent
+- 2026/04/05：建立此檔案、主機名從 devpro-VMware-Virtual-Platform 改為 Ubuntu-Devpro、安裝 Cursor Agent、安裝 .NET SDK 8.0
