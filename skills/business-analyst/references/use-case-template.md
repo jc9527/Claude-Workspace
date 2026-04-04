@@ -56,6 +56,85 @@
 
 ---
 
+## 系統互動 / Data Flow
+
+### 系統架構位置
+
+| 系統/服務 | 職責 | 說明 |
+|-----------|------|------|
+| | | |
+
+### Data Flow（資料流）
+
+\`\`\`
+[Client/App]
+     │
+     │ 1. HTTP Request / API Call
+     ▼
+[API Gateway / Service A]
+     │
+     │ 2. Internal Call / Message Queue
+     ▼
+[Service B / Database]
+     │
+     │ 3. Response
+     ▼
+[返回至 Client]
+\`\`\`
+
+### API 規格
+
+#### Endpoint
+
+| 項目 | 內容 |
+|------|------|
+| **Method** | POST / GET / PUT / DELETE |
+| **URL** | /api/v1/resource |
+| **認證** | Bearer Token / API Key |
+
+#### Request
+
+\`\`\`json
+{
+  "field1": "value1",
+  "field2": "value2"
+}
+\`\`\`
+
+#### Response（成功）
+
+\`\`\`json
+{
+  "success": true,
+  "data": {
+    "id": "123"
+  }
+}
+\`\`\`
+
+#### Response（錯誤）
+
+\`\`\`json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Error description"
+  }
+}
+\`\`\`
+
+### 訊息佇列（如果適用）
+
+| 欄位 | 內容 |
+|------|------|
+| **Queue/Topic** | |
+| **Producer** | |
+| **Consumer** | |
+| **Message Format** | |
+
+---
+
 ## 例外流程
 
 ### 例外流程 1：系統錯誤
