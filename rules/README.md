@@ -7,7 +7,7 @@
 | 檔案 | 內容 |
 |------|------|
 | [workspace.md](workspace.md) | 目錄結構、命名、Commit、工作規則、menu 指令 |
-| [prompts-and-scripts.md](prompts-and-scripts.md) | `prompts/` 與 `scripts/` 分工與命名 |
+| [prompts-and-scripts.md](prompts-and-scripts.md) | `prompts/` 與 `scripts/` 分工、命名 + 錯誤處理規範 |
 
 ## 使用方式
 
