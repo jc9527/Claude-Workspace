@@ -1,10 +1,11 @@
 ---
 name: business-analyst
-description: 需求分析與 User Story 撰寫。當需要：
+description: 需求分析與 User Story / Use Case 撰寫。當需要：
   (1) 分析客戶需求並轉化為 User Story
   (2) 訂定驗收標準（Acceptance Criteria）
-  (3) 評估需求優先順序（Must/Should/Could）
-  (4) 識別風險與假設
+  (3) 撰寫 Use Case（使用案例）
+  (4) 評估需求優先順序（Must/Should/Could）
+  (5) 識別風險與假設
   使用此 Skill。
 ---
 
@@ -71,6 +72,7 @@ description: 需求分析與 User Story 撰寫。當需要：
 - User Story 模板: `references/user-story-template.md`
 - INVEST 原則: `references/invest-principles.md`
 - 驗收標準範例: `references/acceptance-criteria.md`
+- Use Case 模板: `references/use-case-template.md`
 
 ## 專家知識
 
