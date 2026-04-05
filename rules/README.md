@@ -10,6 +10,7 @@
 | [prompts-and-scripts.md](prompts-and-scripts.md) | `prompts/` 與 `scripts/` 分工、命名 + 錯誤處理規範 |
 | [idea-process.md](idea-process.md) | Idea 處理流程：必須先提供 Plan 與複雜度評估，不可直接執行 |
 | [multi-agent-workflow.md](multi-agent-workflow.md) | Multi-Agent 協作流程：BA→SA→SD→Quoter→Dev→QA→DevOps，階段順序與 Repo/Application 層級結構 |
+| [subagent-spawn-setup.md](subagent-spawn-setup.md) | Sub-Agent Spawn 設定指南：解決 pairing required 問題的完整步驟 |
 
 ## 使用方式
 
