@@ -1,0 +1,67 @@
+================================================================================
+P002 - FileManager QA 測試報告
+Date: 2026-04-06 01:09 GMT+8
+Version: d9fdb11 (Service Injection Refactor)
+================================================================================
+
+【測試環境】
+- Framework: .NET 8 Blazor Server
+- Port: 5016
+- Root Folder: /home/devpro/data
+
+【功能測試結果】
+
+✅ TC-001 首頁載入
+   URL: http://localhost:5016/
+   預期: 顯示檔案管理器頁面
+   結果: PASS - 頁面正常載入
+
+✅ TC-002 檔案列表 API
+   API: GET /api/files?path=/home/devpro/data
+   預期: 返回 JSON 檔案列表
+   結果: PASS - {"success":true,...}
+
+✅ TC-003 資料夾樹 API
+   API: GET /api/folders/tree?path=/home/devpro/data
+   預期: 返回 JSON 資料夾樹
+   結果: PASS - {"success":true,...}
+
+✅ TC-004 新增資料夾
+   API: POST /api/folders
+   Body: {"ParentPath":"/home/devpro/data","FolderName":"TestFolder_1775408928"}
+   預期: 建立新資料夾
+   結果: PASS - {"success":true,"message":"Folder created successfully."}
+
+✅ TC-005 搜尋功能
+   API: POST /api/files/search
+   Body: {"path":"/home/devpro/data","query":"test"}
+   預期: 返回搜尋結果
+   結果: PASS - {"success":true,...}
+
+✅ TC-006 刪除資料夾
+   API: DELETE /api/folders?path=/home/devpro/data/TestFolder_1775408928
+   預期: 刪除資料夾
+   結果: PASS - {"success":true,"message":"Folder deleted successfully."}
+
+【UI 截圖測試】
+
+✅ SC-001 首頁截圖
+   檔案: QA_01_homepage.png
+   狀態: 正常顯示標題和側邊攔
+
+✅ SC-002 檔案列表截圖
+   檔案: QA_02_filelist.png  
+   狀態: 正常顯示檔案列表
+
+✅ SC-003 新增資料夾對話框
+   檔案: QA_03_new_folder_dialog.png
+   狀態: 對話框正常彈出
+
+【安全性測試】
+
+✅ 資料夾不能離開 rootFolder
+✅ 路徑遍歷攻擊被阻擋
+
+================================================================================
+測試總結: 9/9 PASS
+================================================================================
