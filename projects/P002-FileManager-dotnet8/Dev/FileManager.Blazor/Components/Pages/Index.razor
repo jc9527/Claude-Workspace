@@ -30,9 +30,12 @@
                 <ul class="tree-list">
                 @foreach (var node in folderTreeNodes)
                 {
-                    <li @onclick="() => NavigateTo(node.Path)">
-                        <i class="rz-icon rzi-folder"></i> @node.Name
-                    </li>
+                    @if (ShouldShowFolder(node.Name))
+                    {
+                        <li @onclick="() => NavigateTo(node.Path)">
+                            <i class="rz-icon rzi-folder"></i> @node.Name
+                        </li>
+                    }
                 }
                 </ul>
             }
@@ -79,6 +82,9 @@
                 </div>
                 
                 <div class="toolbar-right">
+                    <button @onclick="LogOut" title="登出">
+                        <i class="rz-icon rzi-sign-out"></i> 登出
+                    </button>
                     <button @onclick="ShowNewFolderDialog" title="新增資料夾">
                         <i class="rz-icon rzi-folder-plus"></i> 新增資料夾
                     </button>

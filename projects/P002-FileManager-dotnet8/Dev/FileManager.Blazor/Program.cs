@@ -37,11 +37,24 @@ builder.Services.AddSession(options =>
     options.Cookie.Name = ".FileManager.Session";
 });
 
-// Add HttpContext accessor
+// Add HttpContext accessor for HttpClient configuration
 builder.Services.AddHttpContextAccessor();
 
 // Register HttpClient for Blazor SSR
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("ServerAPI", (services, client) =>
+{
+    var httpContextAccessor = services.GetService<IHttpContextAccessor>();
+    var request = httpContextAccessor?.HttpContext?.Request;
+    if (request != null)
+    {
+        client.BaseAddress = new Uri($"{request.Scheme}://{request.Host}/");
+    }
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    UseCookies = true,
+    CookieContainer = new System.Net.CookieContainer()
+});
 
 // Register services
 builder.Services.AddScoped<IConfigService, ConfigService>();
