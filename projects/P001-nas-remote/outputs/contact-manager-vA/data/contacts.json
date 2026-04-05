@@ -1,0 +1,22 @@
+[
+  {
+    "id": "b9307e67-9149-4375-9da7-66b16dd3e115",
+    "name": "小明",
+    "phone": "",
+    "email": "",
+    "company": "測試公司",
+    "notes": "",
+    "created_at": "2026-04-05T10:13:13Z",
+    "updated_at": "2026-04-05T10:13:13Z"
+  },
+  {
+    "id": "375dbdc0-c7d7-42b3-9b1c-23db96dd0fe6",
+    "name": "張三",
+    "phone": "0912-345-678",
+    "email": "zhangsan@test.com",
+    "company": "測試公司A",
+    "notes": "新客戶",
+    "created_at": "2026-04-05T11:12:37Z",
+    "updated_at": "2026-04-05T11:12:37Z"
+  }
+]

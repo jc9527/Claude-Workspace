@@ -1,0 +1,71 @@
+# 安全性測試報告
+## 專案: P002-FileManager-dotnet8
+## 測試日期: 2026-04-05
+## 測試環境: http://localhost:5000
+
+---
+
+## 測試 1: 路徑遍歷攻擊
+- **攻擊目標:** /etc/passwd
+- **API:** GET /api/files?path=/etc/passwd
+- **預期行為:** 阻擋並回傳錯誤
+- **結果:** ✅ 安全性正常
+
+### 回應
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Path is outside the root folder.",
+  "errorCode": "ACCESS_DENIED"
+}
+```
+
+### 分析
+- 系統正確阻擋了路徑遍歷攻擊
+- errorCode: ACCESS_DENIED 明確標示為存取拒絕
+- 路徑驗證邏輯正常運作
+
+---
+
+## 測試 2: 不存在路徑
+- **測試路徑:** /home/devpro/data/nonexistent_xyz123
+- **API:** GET /api/files?path=/home/devpro/data/nonexistent_xyz123
+- **預期行為:** 回傳找不到資源
+- **結果:** ✅ 正常處理
+
+### 回應
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Directory not found: /home/devpro/data/nonexistent_xyz123",
+  "errorCode": "PATH_NOT_FOUND"
+}
+```
+
+### 分析
+- 錯誤訊息清晰指出路徑不存在
+- 不會洩漏系統敏感資訊
+- 適當的 HTTP 狀態碼和錯誤碼
+
+---
+
+## 測試 3: 重新命名路徑遍歷 (已於 SIT-06 測試)
+- **現象:** 重新命名 API 對所有路徑都回傳 PATH_TRAVERSAL_DETECTED
+- **分析:** 可能是過度嚴格的路徑驗證，需要檢查實作
+
+---
+
+## 安全性總結
+
+| 測試項目 | 結果 | 備註 |
+|----------|------|------|
+| 路徑遍歷阻擋 | ✅ PASS | 正確阻擋非法路徑 |
+| 不存在路徑處理 | ✅ PASS | 適當錯誤回應 |
+| 錯誤訊息 | ✅ PASS | 無資訊洩漏 |
+
+## 建議
+1. **路徑驗證** - 現有路徑驗證對常見攻擊有效
+2. **SIT-06 問題** - 重新命名功能的路徑驗證可能過於嚴格，需要檢查實作
+3. **持續監控** - 建議進行更全面的滲透測試

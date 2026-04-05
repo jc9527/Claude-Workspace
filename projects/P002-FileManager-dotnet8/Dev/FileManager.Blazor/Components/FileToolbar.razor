@@ -1,0 +1,25 @@
+@namespace FileManager.Blazor.Components
+
+<div class="file-toolbar">
+    <button @onclick="Refresh">
+        <i class="rz-icon rzi-refresh"></i> 重新整理
+    </button>
+    <button @onclick="NewFolder">
+        <i class="rz-icon rzi-plus"></i> 新增資料夾
+    </button>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnRefreshCallback { get; set; }
+
+    private async Task Refresh()
+    {
+        await OnRefreshCallback.InvokeAsync();
+    }
+
+    private Task NewFolder()
+    {
+        // TODO: Show dialog
+        return Task.CompletedTask;
+    }
+}

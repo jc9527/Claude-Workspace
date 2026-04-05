@@ -1,0 +1,12 @@
+{
+  "status_code": 404,
+  "headers": {
+    "Content-Type": "application/json",
+    "Content-Length": "35",
+    "X-Trace-ID": "test-008",
+    "X-Testing-Case": "TC008"
+  },
+  "body": {
+    "error": "Contact not found"
+  }
+}

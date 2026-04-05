@@ -1,0 +1,4 @@
+< HTTP/1.1 200 OK
+< X-Trace-ID: P002-QA-TC01-20260405-001
+< X-Request-Duration-Ms: 0
+< X-Server-Time: 2026-04-05T15:59:04.6999275Z

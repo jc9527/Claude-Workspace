@@ -1,0 +1,101 @@
+/* Contact Manager vB - Custom Styles */
+
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navbar enhancements */
+.navbar-brand {
+    font-weight: 600;
+}
+
+/* Card enhancements */
+.card {
+    border: none;
+    border-radius: 12px;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+
+/* Table enhancements */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead th {
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Form enhancements */
+.form-label {
+    font-weight: 500;
+    color: #333;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+}
+
+/* Button enhancements */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.btn-sm {
+    border-radius: 4px;
+}
+
+/* Alert enhancements */
+.alert {
+    border-radius: 8px;
+}
+
+/* Footer */
+footer {
+    border-top: 1px solid #dee2e6;
+}
+
+/* Animation for loading states */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}

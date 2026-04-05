@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}聯絡人列表 - 聯絡人管理系統 vB{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="bi bi-list me-2"></i>聯絡人列表</h1>
+    </div>
+    <div class="col-auto">
+        <a href="/add" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>新增聯絡人
+        </a>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchInput" placeholder="搜尋姓名、Email 或電話...">
+            <button class="btn btn-outline-secondary" type="button" id="clearSearch">清除</button>
+        </div>
+    </div>
+</div>
+
+<!-- Contact List -->
+<div class="row">
+    <div class="col-12">
+        {% if contacts and contacts|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover shadow-sm" id="contactsTable">
+                <thead class="table-primary">
+                    <tr>
+                        <th>姓名</th>
+                        <th>Email</th>
+                        <th>電話</th>
+                        <th>建立時間</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contact in contacts %}
+                    <tr data-contact-id="{{ contact.id }}" data-name="{{ contact.name.lower() }}" data-email="{{ contact.email.lower() }}" data-phone="{{ contact.phone.lower() }}">
+                        <td class="fw-bold">{{ contact.name }}</td>
+                        <td><a href="mailto:{{ contact.email }}">{{ contact.email }}</a></td>
+                        <td>{{ contact.phone or '-' }}</td>
+                        <td class="text-muted small">{{ contact.created_at[:10] if contact.created_at else '-' }}</td>
+                        <td>
+                            <a href="/edit/{{ contact.id }}" class="btn btn-sm btn-outline-primary me-1" title="編輯">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger delete-btn" data-id="{{ contact.id }}" data-name="{{ contact.name }}" title="刪除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+            <p class="mb-0">目前沒有聯絡人</p>
+            <a href="/add" class="btn btn-primary mt-3">新增第一個聯絡人</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">確認刪除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                確定要刪除聯絡人「<span id="deleteContactName"></span>」嗎？
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">確認刪除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Search functionality
+const searchInput = document.getElementById('searchInput');
+const clearSearch = document.getElementById('clearSearch');
+const table = document.getElementById('contactsTable');
+
+searchInput.addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    const rows = table.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const name = row.dataset.name;
+        const email = row.dataset.email;
+        const phone = row.dataset.phone;
+        
+        if (query === '' || name.includes(query) || email.includes(query) || phone.includes(query)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+clearSearch.addEventListener('click', function() {
+    searchInput.value = '';
+    searchInput.dispatchEvent(new Event('input'));
+});
+
+// Delete functionality
+let deleteTargetId = null;
+document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        deleteTargetId = this.dataset.id;
+        document.getElementById('deleteContactName').textContent = this.dataset.name;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    });
+});
+
+document.getElementById('confirmDelete').addEventListener('click', async function() {
+    if (!deleteTargetId) return;
+    
+    try {
+        const response = await fetch(`/api/contacts/${deleteTargetId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('刪除失敗');
+        }
+    } catch (err) {
+        alert('刪除失敗: ' + err.message);
+    }
+});
+</script>
+{% endblock %}

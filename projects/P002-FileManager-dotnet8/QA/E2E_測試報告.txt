@@ -1,0 +1,72 @@
+===========================================
+E2E 測試報告 - P002-FileManager-dotnet8
+===========================================
+測試日期: 2026-04-05
+測試人員: QA Engineer (Subagent)
+專案路徑: /home/devpro/Claude-Workspace/projects/P002-FileManager-dotnet8/Dev/FileManager.Blazor/
+
+【測試結果摘要】
+測試總數: 3
+通過: 0
+失敗: 3
+
+【嚴重發現】
+1. 首頁路由衝突 (AmbiguousMatchException)
+2. Blazor SSR 無法正常運作
+
+【詳細測試結果】
+
+Test 1: 首頁內容測試
+-------------------
+命令: curl -s http://localhost:5000/ | head -50
+預期: 包含 "檔案管理器"
+實際: 
+  Microsoft.AspNetCore.Routing.Matching.AmbiguousMatchException: 
+  The request matched multiple endpoints. Matches: / (/), / (/)
+狀態: ❌ FAIL
+
+Test 2: Blazor SSR 標頭檢查
+---------------------------
+命令: curl -s -I http://localhost:5000/
+預期: 回應包含 Blazor SSR 相关 Header
+實際: 
+  HTTP/1.1 405 Method Not Allowed
+  Allow: GET, POST
+  X-Trace-ID: P002-API-Unknown-20260405-000014
+  X-Request-Duration-Ms: 0
+  X-Server-Time: 2026-04-05T15:34:07.7106844Z
+狀態: ❌ FAIL (405 Method Not Allowed)
+
+Test 3: 頁面關鍵字搜尋
+---------------------
+命令: curl -s http://localhost:5000/ | grep -i "檔案管理器"
+預期: 找到 "檔案管理器"
+實際: 無輸出 (未找到)
+狀態: ❌ FAIL
+
+【問題分析】
+
+問題 1: AmbiguousMatchException
+原因: 有多個端點匹配 "/" 路徑
+可能原因:
+  - Components/Routes.razor 定義了 @page "/"
+  - Components/Pages/Index.razor 也定義了 @page "/"
+  - 造成路由重複
+
+問題 2: 405 Method Not Allowed
+原因: GET 請求被拒絕，但 Allow header 顯示 GET 是允許的
+這可能是路由匹配失敗後的錯誤處理問題
+
+【修復建議】
+
+1. 檢查 Routes.razor 和 Index.razor 的路由配置
+   - 移除重複的 @page "/" 定義
+
+2. 確保 Blazor Server 正確配置:
+   ```csharp
+   builder.Services.AddRazorComponents()
+       .AddInteractiveServerComponents();
+   ```
+
+【結論】
+前端 Blazor SSR 層級有嚴重問題，需要修复路由衝突和確保正確的 render mode 配置。

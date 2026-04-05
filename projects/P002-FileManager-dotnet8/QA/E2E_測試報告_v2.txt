@@ -1,0 +1,42 @@
+# E2E 測試報告 v2
+## 專案: P002-FileManager-dotnet8
+## 測試日期: 2026-04-05
+## 測試環境: http://localhost:5000
+
+---
+
+## E2E-01: 首頁測試
+- **URL:** http://localhost:5000/
+- **預期:** 首頁正常顯示 (Blazor SSR)
+- **結果:** ❌ FAIL
+
+### 錯誤詳情
+```
+Microsoft.AspNetCore.Routing.Matching.AmbiguousMatchException: The request matched multiple endpoints. Matches: 
+/ (/)
+/ (/)
+   at Microsoft.AspNetCore.Routing.Matching.DefaultEndpointSelector.ReportAmbiguity(Span`1 candidateState)
+```
+
+### 分析
+- Blazor SSR 路由配置存在問題
+- 根路徑 "/" 被註冊了多次
+- 需要檢查 Program.cs 或路由配置
+
+---
+
+## E2E-02: API 健康檢查
+- **URL:** http://localhost:5000/api/settings
+- **結果:** ✅ PASS
+- API 端點正常運作
+
+---
+
+## 總結
+
+| 測試項目 | 結果 | 備註 |
+|----------|------|------|
+| 首頁 | ❌ FAIL | 路由重複註冊 |
+| API 健康檢查 | ✅ PASS | - |
+
+**需要修復:** 路由配置問題導致首頁無法訪問

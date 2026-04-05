@@ -1,0 +1,12 @@
+{
+  "status_code": 400,
+  "headers": {
+    "Content-Type": "application/json",
+    "Content-Length": "34",
+    "X-Trace-ID": "test-003",
+    "X-Testing-Case": "TC003"
+  },
+  "body": {
+    "error": "Name is required"
+  }
+}

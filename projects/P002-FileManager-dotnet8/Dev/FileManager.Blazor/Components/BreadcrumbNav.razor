@@ -1,0 +1,67 @@
+@namespace FileManager.Blazor.Components
+
+<div class="breadcrumb-nav">
+    @if (PathSegments != null && PathSegments.Length > 0)
+    {
+        @for (int i = 0; i < PathSegments.Length; i++)
+        {
+            var segment = PathSegments[i];
+            var isLast = i == PathSegments.Length - 1;
+            
+            <span class="breadcrumb-segment @(isLast ? "active" : "")" @onclick="() => OnSegmentClick(i)">
+                @segment
+            </span>
+            
+            @if (!isLast)
+            {
+                <span class="breadcrumb-separator">/</span>
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string CurrentPath { get; set; } = "/";
+    [Parameter] public EventCallback<string> OnPathChange { get; set; }
+
+    private string[] PathSegments => CurrentPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+    private async Task OnSegmentClick(int index)
+    {
+        // Build path up to this segment
+        var targetPath = "/" + string.Join("/", PathSegments.Take(index + 1));
+        await OnPathChange.InvokeAsync(targetPath);
+    }
+}
+
+<style>
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    flex-wrap: wrap;
+}
+
+.breadcrumb-segment {
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.breadcrumb-segment:hover {
+    background: #e9ecef;
+}
+
+.breadcrumb-segment.active {
+    font-weight: 600;
+    color: #0d6efd;
+}
+
+.breadcrumb-separator {
+    color: #6c757d;
+    margin: 0 0.25rem;
+}
+</style>

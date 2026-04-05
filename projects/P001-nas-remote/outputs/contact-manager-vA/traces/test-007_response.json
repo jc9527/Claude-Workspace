@@ -1,0 +1,12 @@
+{
+  "status_code": 200,
+  "headers": {
+    "Content-Type": "application/json",
+    "Content-Length": "35",
+    "X-Trace-ID": "test-007",
+    "X-Testing-Case": "TC007"
+  },
+  "body": {
+    "message": "Contact deleted"
+  }
+}

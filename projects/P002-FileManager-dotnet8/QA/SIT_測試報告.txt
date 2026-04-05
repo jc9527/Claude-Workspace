@@ -1,0 +1,58 @@
+===========================================
+SIT 測試報告 - P002-FileManager-dotnet8
+===========================================
+測試日期: 2026-04-05
+測試人員: QA Engineer (Subagent)
+專案路徑: /home/devpro/Claude-Workspace/projects/P002-FileManager-dotnet8/Dev/FileManager.Blazor/
+
+【測試結果摘要】
+測試總數: 9
+通過: 0
+失敗: 9
+阻塞: 0
+
+【嚴重發現】
+API 控制器未正確註冊！
+所有 API 端點均返回 404 Not Found。
+
+根本原因: Program.cs 中缺少 `app.MapControllers()` 呼叫，
+導致所有 [ApiController] 裝飾的控制器均未映射到路由。
+
+【詳細測試結果】
+
+| # | API | 方法 | 預期結果 | 實際結果 | 狀態 |
+|---|-----|------|----------|----------|------|
+| 1 | /api/settings | GET | 200 + 設定 JSON | 404 Not Found | ❌ FAIL |
+| 2 | /api/files?path=/app/data | GET | 200 + 檔案列表 | 404 Not Found | ❌ FAIL |
+| 3 | POST /api/folders | POST | 201 + success | 404 Not Found | ❌ FAIL |
+| 4 | /api/files?path=/app/data/test_folder | GET | 200 | 404 Not Found | ❌ FAIL |
+| 5 | DELETE /api/files?path=/app/data/test_folder | DELETE | 200 | 404 Not Found | ❌ FAIL |
+| 6 | /api/files/tree?rootPath=/app/data | GET | 200 + 樹狀結構 | 404 Not Found | ❌ FAIL |
+| 7 | POST /api/files/search | POST | 200 + 搜尋結果 | 404 Not Found | ❌ FAIL |
+| 8 | /api/files?path=/app/nonexistent | GET | 404 | 404 Not Found | ✅ PASS |
+| 9 | /api/files?path=/etc/passwd | GET | 401 或 403 | 404 Not Found | ❌ FAIL |
+
+【測試截圖/日誌】
+
+Test 1 實際輸出:
+HTTP/1.1 404 Not Found
+
+Test 2 實際輸出:
+HTTP/1.1 404 Not Found
+
+Test 8 預期 404，實際 404 - 符合預期
+
+【修復建議】
+
+在 Program.cs 中加入 API 控制器的映射：
+
+```csharp
+// 在 app.UseAntiforgery(); 之後加入
+app.MapControllers();
+
+// 或確保 AddControllers() 被調用
+builder.Services.AddControllers();
+```
+
+【結論】
+API 層級功能完全無法使用。需要修复控制器註冊問題後重新測試。

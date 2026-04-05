@@ -1,0 +1,10 @@
+{
+  "status_code": 200,
+  "headers": {
+    "Content-Type": "application/json",
+    "Content-Length": "3",
+    "X-Trace-ID": "test-006",
+    "X-Testing-Case": "TC006"
+  },
+  "body": []
+}

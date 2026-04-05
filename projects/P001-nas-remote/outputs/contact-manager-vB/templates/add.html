@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}新增聯絡人 - 聯絡人管理系統 vB{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-person-plus me-2"></i>新增聯絡人</h4>
+            </div>
+            <div class="card-body">
+                <form id="addForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">姓名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="invalid-feedback">請輸入姓名</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                        <div class="invalid-feedback">請輸入有效的 Email</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">電話</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="0912-345-678">
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="/" class="btn btn-outline-secondary me-md-2">取消</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>儲存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('addForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    
+    // Basic validation
+    if (!name || !email) {
+        alert('請填寫必填欄位');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/contacts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, email, phone })
+        });
+        
+        if (response.ok) {
+            window.location.href = '/';
+        } else {
+            const data = await response.json();
+            alert('新增失敗: ' + (data.message || '未知錯誤'));
+        }
+    } catch (err) {
+        alert('新增失敗: ' + err.message);
+    }
+});
+</script>
+{% endblock %}

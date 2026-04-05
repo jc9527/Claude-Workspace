@@ -1,0 +1,62 @@
+# Debug Header 驗證報告 v2
+## 專案: P002-FileManager-dotnet8
+## 測試日期: 2026-04-05
+## 測試環境: http://localhost:5000
+
+---
+
+## 驗證標準
+所有 API 回應必須包含以下 Header：
+- ✅ X-Trace-ID (追蹤請求)
+- ✅ X-Request-Duration-Ms (請求處理時間)
+- ✅ X-Server-Time (伺服器時間戳)
+
+---
+
+## TC-01: GET /api/settings
+- **X-Trace-ID:** P002-QA-TC01-20260405-001
+- **X-Request-Duration-Ms:** 0
+- **X-Server-Time:** 2026-04-05T15:58:59.1122636Z
+- **HTTP Status:** 405 Method Not Allowed (HEAD 請求)
+
+### 改用 GET 請求測試:
+- **X-Trace-ID:** P002-QA-TC01-20260405-001 ✅
+- **X-Request-Duration-Ms:** 0 ✅
+- **X-Server-Time:** 2026-04-05T15:59:04.6999275Z ✅
+- **HTTP Status:** 200 OK ✅
+
+---
+
+## TC-02: GET /api/files
+- **X-Trace-ID:** P002-QA-TC02-20260405-001
+- **X-Request-Duration-Ms:** 0
+- **X-Server-Time:** 2026-04-05T15:59:10.6083968Z
+- **HTTP Status:** 200 OK
+- **結果:** ✅ 所有 Header 正確
+
+---
+
+## TC-03: POST /api/folders
+- **X-Trace-ID:** P002-QA-TC03-20260405-001
+- **X-Request-Duration-Ms:** 0
+- **X-Server-Time:** 2026-04-05T15:59:10.6223872Z
+- **HTTP Status:** 400 Bad Request
+- **結果:** ✅ 所有 Header 正確
+
+---
+
+## 驗證結果總結
+
+| API | Method | X-Trace-ID | X-Request-Duration-Ms | X-Server-Time | 結果 |
+|-----|--------|------------|----------------------|----------------|------|
+| /api/settings | GET | ✅ | ✅ | ✅ | PASS |
+| /api/files | GET | ✅ | ✅ | ✅ | PASS |
+| /api/folders | POST | ✅ | ✅ | ✅ | PASS |
+
+## 發現
+1. **Debug Header 功能正常** - 所有 API 都正確返回追蹤 Header
+2. **HEAD 請求問題** - HEAD 請求返回 405 Method Not Allowed，但 GET 正常
+3. **時間精度** - X-Server-Time 使用 ISO 8601 格式，精確到微秒
+
+## 結論
+Debug Header 驗證 ✅ **全部通過**

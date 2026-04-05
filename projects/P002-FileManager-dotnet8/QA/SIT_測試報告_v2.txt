@@ -1,0 +1,118 @@
+# SIT 測試報告 v2
+## 專案: P002-FileManager-dotnet8
+## 測試日期: 2026-04-05
+## 測試環境: http://localhost:5000
+
+---
+
+## SIT-01: 取得設定
+- **API:** GET /api/settings
+- **預期:** 200 + JSON
+- **結果:** ✅ PASS
+- **回應:** 
+```json
+{"rootFolder":"/home/devpro/data","allowedFileExtensions":["*","*"],"maxRequestLength":4096,"permissions":{...},"ui":{...}}
+```
+- **JSON 檔案:** SIT01_settings.json
+
+---
+
+## SIT-02: 取得檔案列表
+- **API:** GET /api/files?path=/home/devpro/data
+- **預期:** 200 + 列表
+- **結果:** ✅ PASS
+- **回應:** success=true, 2 items (qa_test, qa_fixed)
+- **JSON 檔案:** SIT02_filelist.json
+
+---
+
+## SIT-03: 建立資料夾
+- **API:** POST /api/folders
+- **預期:** 200 + success
+- **結果:** ⚠️ ISSUE
+- **現象:** API 持續回傳 "Folder already exists" 錯誤，但資料夾確實不存在
+- **測試路徑:**
+  - /home/devpro/data/qa_test_new → FOLDER_EXISTS
+  - /home/devpro/data/qa_sit03_20260405_235822_867355453 → FOLDER_EXISTS (目錄已建立但 API 仍報錯)
+- **可能原因:** API 實作可能存在快取問題或路徑正規化問題
+- **JSON 檔案:** SIT03_createfolder*.json
+
+---
+
+## SIT-04: 取得資料夾內容
+- **API:** GET /api/files?path=/home/devpro/data/qa_test
+- **預期:** 200
+- **結果:** ✅ PASS
+- **回應:** success=true, 1 item (parent folder "..")
+- **JSON 檔案:** SIT04_folder_content.json
+
+---
+
+## SIT-05: 搜尋檔案
+- **API:** POST /api/files/search
+- **預期:** 200 + 結果
+- **結果:** ✅ PASS
+- **搜尋條件:** path=/home/devpro/data, searchTerm=qa, recursive=true
+- **回應:** success=true, 0 results (目錄中無檔案)
+- **JSON 檔案:** SIT05_search.json
+
+---
+
+## SIT-06: 重新命名
+- **API:** PATCH /api/files/rename
+- **預期:** 200
+- **結果:** ⚠️ FAIL
+- **現象:** 所有重新命名請求都回傳 "Path is outside the root folder" (PATH_TRAVERSAL_DETECTED)
+- **測試路徑:**
+  - /home/devpro/data/qa_fixed → PATH_TRAVERSAL_DETECTED
+  - /home/devpro/data/qa_test/testfile.txt → PATH_TRAVERSAL_DETECTED
+- **可能原因:** 路徑驗證邏輯過於嚴格或存在 bug
+- **JSON 檔案:** SIT06_rename.json, SIT06_rename2.json
+
+---
+
+## SIT-07: 移動檔案
+- **API:** PATCH /api/files/move
+- **預期:** 200
+- **結果:** ⚠️ PARTIAL FAIL
+- **回應:** {"success":false,"errorCode":"PARTIAL_FAILURE","message":"Some files could not be moved."}
+- **JSON 檔案:** SIT07_move.json
+
+---
+
+## SIT-08: 刪除檔案
+- **API:** DELETE /api/files?path=...
+- **預期:** 200
+- **結果:** ✅ PASS
+- **測試檔案:** /home/devpro/data/qa_test/delete_me.txt
+- **回應:** {"success":true,"message":"File deleted successfully."}
+- **JSON 檔案:** SIT08_delete_file.json
+
+---
+
+## SIT-09: 刪除資料夾
+- **API:** DELETE /api/folders?path=...
+- **預期:** 200
+- **結果:** ✅ PASS
+- **測試資料夾:** /home/devpro/data/qa_sit03_20260405_235822_867355453
+- **回應:** {"success":true,"message":"Folder deleted successfully."}
+- **JSON 檔案:** SIT09_delete_folder.json
+
+---
+
+## 總結
+
+| # | 測試項目 | 結果 |
+|---|----------|------|
+| 1 | 取得設定 | ✅ PASS |
+| 2 | 取得檔案列表 | ✅ PASS |
+| 3 | 建立資料夾 | ⚠️ ISSUE |
+| 4 | 取得資料夾內容 | ✅ PASS |
+| 5 | 搜尋檔案 | ✅ PASS |
+| 6 | 重新命名 | ⚠️ FAIL |
+| 7 | 移動檔案 | ⚠️ PARTIAL |
+| 8 | 刪除檔案 | ✅ PASS |
+| 9 | 刪除資料夾 | ✅ PASS |
+
+**通過: 5/9 (56%)**
+**問題: 4 項需要修復**

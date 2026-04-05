@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+
+{% block title %}聯絡人列表{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="搜尋聯絡人..." onkeyup="handleSearch(event)">
+        <a href="/contacts/new" class="btn btn-primary">➕ 新增聯絡人</a>
+    </div>
+
+    <div id="loading" class="loading" style="display:none">載入中...</div>
+    <div id="message" class="message" style="display:none"></div>
+
+    <table class="contact-table">
+        <thead>
+            <tr>
+                <th>姓名</th>
+                <th>電話</th>
+                <th>Email</th>
+                <th>公司</th>
+                <th>備註</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="contactList"></tbody>
+    </table>
+
+    <p id="emptyMsg" class="empty-msg" style="display:none">目前沒有聯絡人</p>
+</div>
+{% endblock %}

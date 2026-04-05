@@ -1,0 +1,8 @@
+HTTP/1.1 405 Method Not Allowed
+Date: Sun, 05 Apr 2026 15:58:58 GMT
+Server: Kestrel
+Allow: GET
+X-Trace-ID: P002-QA-TC01-20260405-001
+X-Request-Duration-Ms: 0
+X-Server-Time: 2026-04-05T15:58:59.1122636Z
+

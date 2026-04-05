@@ -1,0 +1,19 @@
+{
+  "status_code": 200,
+  "headers": {
+    "Content-Type": "application/json",
+    "Content-Length": "263",
+    "X-Trace-ID": "test-005",
+    "X-Testing-Case": "TC005"
+  },
+  "body": {
+    "id": "4549646d-f054-406d-a32d-cef382f0643c",
+    "name": "張三(已更新)",
+    "phone": "",
+    "email": "",
+    "company": "測試公司",
+    "notes": "",
+    "created_at": "2026-04-05T10:13:03Z",
+    "updated_at": "2026-04-05T11:12:37Z"
+  }
+}

@@ -1,0 +1,65 @@
+@namespace FileManager.Blazor.Components
+
+<div class="file-list">
+    <table>
+        <thead>
+            <tr>
+                <th>名稱</th>
+                <th>大小</th>
+                <th>修改日期</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Items != null && Items.Any())
+            {
+                @foreach (var item in Items)
+                {
+                    <tr @ondblclick="() => OnFolderEnter.InvokeAsync(item)">
+                        <td>
+                            @if (item.IsDirectory)
+                            {
+                                <i class="rz-icon rzi-folder" style="color: #ffc107;"></i>
+                            }
+                            else
+                            {
+                                <i class="rz-icon rzi-file" style="color: #6c757d;"></i>
+                            }
+                            @item.Name
+                        </td>
+                        <td>
+                            @if (!item.IsDirectory)
+                            {
+                                @FormatSize(item.Size)
+                            }
+                        </td>
+                        <td>@item.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="3" class="empty-state">此資料夾為空</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter] public List<FileItem>? Items { get; set; }
+    [Parameter] public EventCallback<FileItem> OnFolderEnter { get; set; }
+
+    private string FormatSize(long size)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double len = size;
+        while (len >= 1024 && order < suffixes.Length - 1)
+        {
+            order++;
+            len /= 1024;
+        }
+        return $"{len:0.##} {suffixes[order]}";
+    }
+}

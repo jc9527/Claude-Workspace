@@ -1,0 +1,18 @@
+@namespace FileManager.Blazor.Components.Icons
+
+<span class="file-icon @(IsDirectory ? "folder" : "file")" style="color: @Color;">
+    @if (IsDirectory)
+    {
+        <i class="rz-icon rz-icon-folder @(IsOpen ? "rzi-folder-open" : "rzi-folder")"></i>
+    }
+    else
+    {
+        <i class="rz-icon rzi-file"></i>
+    }
+</span>
+
+@code {
+    [Parameter] public bool IsDirectory { get; set; }
+    [Parameter] public bool IsOpen { get; set; } = false;
+    [Parameter] public string Color { get; set; } = "inherit";
+}

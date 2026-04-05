@@ -1,0 +1,16 @@
+{
+  "trace_id": "test-007",
+  "testing_case": "TC007",
+  "qa_debug_info": "{}",
+  "method": "DELETE",
+  "path": "/api/contacts/4549646d-f054-406d-a32d-cef382f0643c",
+  "query_string": "",
+  "headers": {
+    "Host": "localhost:5000",
+    "User-Agent": "curl/8.5.0",
+    "Accept": "*/*",
+    "X-Trace-Id": "test-007",
+    "X-Testing-Case": "TC007"
+  },
+  "body": null
+}

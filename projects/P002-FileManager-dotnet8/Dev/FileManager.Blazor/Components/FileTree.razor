@@ -1,0 +1,26 @@
+@namespace FileManager.Blazor.Components
+
+<div class="file-tree">
+    @if (Nodes != null && Nodes.Any())
+    {
+        <ul>
+            @foreach (var node in Nodes)
+            {
+                <li>
+                    <span @onclick="() => OnFolderSelected.InvokeAsync(node.Path)">
+                        <i class="rz-icon rzi-folder"></i> @node.Name
+                    </span>
+                </li>
+            }
+        </ul>
+    }
+    else
+    {
+        <div class="loading">載入資料夾樹...</div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<FolderTreeNode>? Nodes { get; set; }
+    [Parameter] public EventCallback<string> OnFolderSelected { get; set; }
+}

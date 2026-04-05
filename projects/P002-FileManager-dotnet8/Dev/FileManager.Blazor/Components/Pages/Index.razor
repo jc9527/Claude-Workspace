@@ -1,0 +1,311 @@
+@page "/"
+@inject Services.IFileService FileService
+@inject Services.IFolderService FolderService
+
+<div class="filemanager-page">
+    <div class="header">
+        <h1>📁 檔案管理器</h1>
+    </div>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <h3>📂 資料夾樹</h3>
+            @if (folderTreeNodes != null && folderTreeNodes.Any())
+            {
+                <ul class="tree-list">
+                @foreach (var node in folderTreeNodes)
+                {
+                    <li @onclick="() => OnFolderSelected(node.Path)">
+                        <i class="rz-icon rzi-folder"></i> @node.Name
+                    </li>
+                }
+                </ul>
+            }
+            else
+            {
+                <div class="loading">載入資料夾樹...</div>
+            }
+        </aside>
+        
+        <main class="content">
+            <div class="path-display">
+                <span class="path-label">路徑：</span>
+                <code class="path-value">@currentPath</code>
+            </div>
+            
+            <div class="toolbar">
+                <button @onclick="RefreshCurrentFolder">🔄 重新整理</button>
+                <button @onclick="ShowNewFolderDialog">📁 新增資料夾</button>
+            </div>
+            
+            <div class="file-list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>名稱</th>
+                            <th>大小</th>
+                            <th>修改日期</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (fileItems != null && fileItems.Any())
+                        {
+                            @foreach (var item in fileItems)
+                            {
+                                <tr @ondblclick="() => EnterFolder(item)">
+                                    <td>
+                                        @if (item.IsDirectory)
+                                        {
+                                            <i class="rz-icon rzi-folder" style="color: #ffc107;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="rz-icon rzi-file" style="color: #6c757d;"></i>
+                                        }
+                                        @item.Name
+                                    </td>
+                                    <td>@(item.IsDirectory ? "-" : FormatSize(item.Size))</td>
+                                    <td>@item.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="3" class="empty-state">此資料夾為空</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</div>
+
+@code {
+    private string currentPath = "/home/devpro/data";
+    private List<Models.Domain.FileItem> fileItems = new();
+    private List<Models.Responses.FolderTreeNode> folderTreeNodes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFiles();
+        await LoadFolderTree();
+    }
+
+    private async Task LoadFiles()
+    {
+        try
+        {
+            var result = await FileService.GetFilesAsync(currentPath);
+            if (result != null)
+            {
+                fileItems = result.Items ?? new List<Models.Domain.FileItem>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading files: {ex.Message}");
+        }
+    }
+
+    private async Task LoadFolderTree()
+    {
+        try
+        {
+            var result = await FolderService.GetFolderTreeAsync(currentPath);
+            if (result != null && result.Nodes != null)
+            {
+                folderTreeNodes = result.Nodes;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading folder tree: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshCurrentFolder()
+    {
+        await LoadFiles();
+    }
+
+    private async Task OnFolderSelected(string path)
+    {
+        currentPath = path;
+        await LoadFiles();
+        await LoadFolderTree();
+    }
+
+    private async Task EnterFolder(Models.Domain.FileItem item)
+    {
+        if (item.IsDirectory)
+        {
+            currentPath = item.Path;
+            await LoadFiles();
+        }
+    }
+
+    private Task ShowNewFolderDialog()
+    {
+        // TODO: Show dialog
+        return Task.CompletedTask;
+    }
+
+    private string FormatSize(long size)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double len = size;
+        while (len >= 1024 && order < suffixes.Length - 1)
+        {
+            order++;
+            len /= 1024;
+        }
+        return $"{len:0.##} {suffixes[order]}";
+    }
+}
+
+<style>
+.filemanager-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+}
+
+.header {
+    padding: 1rem;
+    background: #0d6efd;
+    color: white;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.main-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 250px;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    overflow-y: auto;
+}
+
+.sidebar h3 {
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.tree-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tree-list li {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.tree-list li:hover {
+    background: #e9ecef;
+}
+
+.loading {
+    padding: 1rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 1rem;
+    gap: 0.5rem;
+}
+
+.path-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.path-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.path-value {
+    flex: 1;
+    background: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.toolbar {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.toolbar button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.toolbar button:hover {
+    background: #e9ecef;
+}
+
+.file-list {
+    flex: 1;
+    overflow: auto;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.file-list table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.file-list th, .file-list td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.file-list th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.file-list tr:hover {
+    background: #f8f9fa;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+</style>

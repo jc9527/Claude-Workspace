@@ -1,0 +1,37 @@
+===========================================
+QA 測試報告（修復後）- P002-FileManager-dotnet8
+===========================================
+測試日期: 2026-04-05
+測試人員: 龍哥
+專案路徑: /home/devpro/Claude-Workspace/projects/P002-FileManager-dotnet8/Dev/FileManager.Blazor/
+
+【修復內容】
+1. Program.cs 加入 app.MapControllers()
+2. appsettings.json RootFolder 改為 /home/devpro/data
+
+【測試結果摘要】
+測試總數: 6
+通過: 6
+失敗: 0
+
+【SIT 測試結果】
+
+| # | API | 方法 | 預期結果 | 實際結果 | 狀態 |
+|---|-----|------|----------|----------|------|
+| 1 | /api/settings | GET | 200 + 設定 JSON | 200 OK | ✅ PASS |
+| 2 | /api/files?path=/home/devpro/data | GET | 200 + 檔案列表 | 200 OK | ✅ PASS |
+| 3 | POST /api/folders | POST | 200 + success | 200 OK | ✅ PASS |
+| 4 | Search | POST | 200 + 結果 | 200 OK | ✅ PASS |
+| 5 | Delete | DELETE | 200 + success | 200 OK | ✅ PASS |
+| 6 | Debug Header | - | X-Trace-ID | X-Trace-ID Present | ✅ PASS |
+
+【Debug Header 驗證】
+
+| Header | 預期 | 實際 | 狀態 |
+|--------|------|------|------|
+| X-Trace-ID | ✓ | P002-FOLDER-Create-20260405-000002 | ✅ PASS |
+| X-Request-Duration-Ms | ✓ | Present | ✅ PASS |
+| X-Server-Time | ✓ | Present | ✅ PASS |
+
+【結論】
+所有測試通過，API 和 Debug Header 正常運作。

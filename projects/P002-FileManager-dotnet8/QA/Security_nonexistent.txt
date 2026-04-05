@@ -1,0 +1,1 @@
+{"success":false,"data":null,"message":"Directory not found: /home/devpro/data/nonexistent_xyz123","errorCode":"PATH_NOT_FOUND"}

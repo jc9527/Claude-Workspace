@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-04-05T11:12:37Z",
+  "trace_id": "test-004",
+  "level": "INFO",
+  "location": "api_entry",
+  "method": "GET",
+  "path": "/api/contacts/4549646d-f054-406d-a32d-cef382f0643c",
+  "request_headers": {
+    "Host": "localhost:5000",
+    "User-Agent": "curl/8.5.0",
+    "Accept": "*/*",
+    "X-Trace-Id": "test-004",
+    "X-Testing-Case": "TC004"
+  },
+  "response_status": 200,
+  "duration_ms": 0.21,
+  "testing_case": "TC004",
+  "qa_debug_info": "{}"
+}

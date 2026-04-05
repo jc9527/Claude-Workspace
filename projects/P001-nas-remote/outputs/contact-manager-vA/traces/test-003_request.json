@@ -1,0 +1,20 @@
+{
+  "trace_id": "test-003",
+  "testing_case": "TC003",
+  "qa_debug_info": "{}",
+  "method": "POST",
+  "path": "/api/contacts",
+  "query_string": "",
+  "headers": {
+    "Host": "localhost:5000",
+    "User-Agent": "curl/8.5.0",
+    "Accept": "*/*",
+    "Content-Type": "application/json",
+    "X-Trace-Id": "test-003",
+    "X-Testing-Case": "TC003",
+    "Content-Length": "24"
+  },
+  "body": {
+    "phone": "0912-345-678"
+  }
+}

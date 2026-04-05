@@ -1,0 +1,16 @@
+{
+  "trace_id": "test-001",
+  "testing_case": "TC001",
+  "qa_debug_info": "{}",
+  "method": "GET",
+  "path": "/api/contacts",
+  "query_string": "",
+  "headers": {
+    "Host": "localhost:5000",
+    "User-Agent": "curl/8.5.0",
+    "Accept": "*/*",
+    "X-Trace-Id": "test-001",
+    "X-Testing-Case": "TC001"
+  },
+  "body": null
+}

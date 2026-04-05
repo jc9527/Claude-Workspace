@@ -1,0 +1,35 @@
+@namespace FileManager.Blazor.Components
+
+<div class="path-display">
+    <span class="path-label">路徑：</span>
+    <code class="path-value">@CurrentPath</code>
+</div>
+
+@code {
+    [Parameter] public string CurrentPath { get; set; } = "/";
+}
+
+<style>
+.path-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.path-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.path-value {
+    flex: 1;
+    background: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+}
+</style>

@@ -1,0 +1,20 @@
+{
+  "trace_id": "test-005",
+  "testing_case": "TC005",
+  "qa_debug_info": "{}",
+  "method": "PUT",
+  "path": "/api/contacts/4549646d-f054-406d-a32d-cef382f0643c",
+  "query_string": "",
+  "headers": {
+    "Host": "localhost:5000",
+    "User-Agent": "curl/8.5.0",
+    "Accept": "*/*",
+    "Content-Type": "application/json",
+    "X-Trace-Id": "test-005",
+    "X-Testing-Case": "TC005",
+    "Content-Length": "28"
+  },
+  "body": {
+    "name": "張三(已更新)"
+  }
+}

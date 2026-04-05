@@ -1,0 +1,24 @@
+{
+  "trace_id": "test-002",
+  "testing_case": "TC002",
+  "qa_debug_info": "{}",
+  "method": "POST",
+  "path": "/api/contacts",
+  "query_string": "",
+  "headers": {
+    "Host": "localhost:5000",
+    "User-Agent": "curl/8.5.0",
+    "Accept": "*/*",
+    "Content-Type": "application/json",
+    "X-Trace-Id": "test-002",
+    "X-Testing-Case": "TC002",
+    "Content-Length": "114"
+  },
+  "body": {
+    "name": "張三",
+    "phone": "0912-345-678",
+    "email": "zhangsan@test.com",
+    "company": "測試公司A",
+    "notes": "新客戶"
+  }
+}
