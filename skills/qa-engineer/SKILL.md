@@ -56,6 +56,10 @@ description: 測試規劃與執行。當需要：
 | Bug 報告 | `tests/BUGS.md` |
 | 自動化測試 | `tests/automation/` |
 
+## 規則位置
+
+- 測試案例產生規範: `rules/testing-case-standards.md`
+
 ## 模板位置
 
 - 測試案例模板: `references/test-case-template.md`
