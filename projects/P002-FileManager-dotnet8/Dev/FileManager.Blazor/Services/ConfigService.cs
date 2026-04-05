@@ -16,6 +16,8 @@ public class ConfigService : IConfigService
 
     public string GetRootFolder() => _options.RootFolder;
 
+    public List<string> GetAllowedDomains() => new() { "sinopac.com", "skl.com", "devpro.com.tw" };
+
     public bool IsPathAllowed(string path)
     {
         if (string.IsNullOrEmpty(path)) return false;

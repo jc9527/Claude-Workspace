@@ -27,11 +27,26 @@ builder.Host.UseSerilog();
 builder.Services.Configure<FileManagerOptions>(
     builder.Configuration.GetSection("FileManager"));
 
+// Add Session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromDays(7);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Name = ".FileManager.Session";
+});
+
+// Add HttpContext accessor
+builder.Services.AddHttpContextAccessor();
+
 // Register HttpClient for Blazor SSR
 builder.Services.AddHttpClient();
 
 // Register services
 builder.Services.AddScoped<IConfigService, ConfigService>();
+builder.Services.AddScoped<IServerAuthService, ServerAuthService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IFolderService, FolderService>();
 builder.Services.AddSingleton<ITraceIdGenerator, TraceIdGenerator>();
@@ -53,6 +68,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+app.UseSession();
 
 // Debug Trace Middleware
 app.UseMiddleware<DebugTraceMiddleware>();

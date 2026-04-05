@@ -6,6 +6,7 @@ public interface IConfigService
 {
     FileManagerOptions Options { get; }
     string GetRootFolder();
+    List<string> GetAllowedDomains();
     bool IsPathAllowed(string path);
     bool HasPermission(string permission);
 }

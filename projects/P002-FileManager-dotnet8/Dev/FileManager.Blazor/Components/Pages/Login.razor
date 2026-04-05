@@ -1,0 +1,225 @@
+@page "/login"
+@inject ISessionService SessionService
+@inject NavigationManager Navigation
+@inject HttpClient Http
+
+<div class="login-page">
+    <div class="login-container">
+        <div class="login-header">
+            <h1>📁 檔案管理器</h1>
+            <p>請登入以繼續</p>
+        </div>
+
+        <div class="login-form">
+            <div class="form-group">
+                <label for="email">📧 Email</label>
+                <input type="email" id="email" @bind="email" @bind:event="oninput" 
+                       placeholder="your@email.com" autocomplete="email" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">🔒 Password</label>
+                <input type="password" id="password" @bind="password" @bind:event="oninput"
+                       placeholder="請輸入密碼" @onkeyup="OnKeyUp" autocomplete="current-password" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">
+                    ⚠️ @errorMessage
+                </div>
+            }
+
+            <button class="btn-login" @onclick="LoginAsync" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>登入中...</span>
+                }
+                else
+                {
+                    <span>登入</span>
+                }
+            </button>
+        </div>
+
+        <div class="login-hint">
+            <p>💡 測試提示：密碼與 Email 相同</p>
+            <p>允許的網域：sinopac.com, skl.com, devpro.com.tw</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string email = "";
+    private string password = "";
+    private string errorMessage = "";
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if already logged in
+        var (sessionEmail, _) = await SessionService.GetCurrentUserAsync();
+        if (!string.IsNullOrEmpty(sessionEmail))
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "請輸入 Email 和密碼";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = "";
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/auth/login", new { Email = email, Password = password });
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                errorMessage = error?.Error ?? "登入失敗";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"登入失敗：{ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LoginAsync();
+        }
+    }
+
+    class ErrorResponse
+    {
+        public string? Error { get; set; }
+    }
+}
+
+<style>
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: Arial, sans-serif;
+}
+
+.login-container {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    color: #0d6efd;
+}
+
+.login-header p {
+    margin: 0.5rem 0 0 0;
+    color: #6c757d;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-group input {
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+
+.error-message {
+    padding: 0.75rem;
+    background: #fff5f5;
+    border: 1px solid #dc3545;
+    border-radius: 6px;
+    color: #dc3545;
+    font-size: 0.875rem;
+}
+
+.btn-login {
+    padding: 0.75rem;
+    background: #0d6efd;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-login:hover:not(:disabled) {
+    background: #0b5ed7;
+}
+
+.btn-login:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.login-hint {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.login-hint p {
+    margin: 0.25rem 0;
+}
+</style>
