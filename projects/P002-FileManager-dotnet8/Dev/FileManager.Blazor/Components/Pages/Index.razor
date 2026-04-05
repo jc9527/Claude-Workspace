@@ -2,6 +2,8 @@
 @inject IFileService FileService
 @inject IFolderService FolderService
 @inject IConfigService ConfigService
+@inject HttpClient Http
+@inject IJSRuntime JS
 
 <div class="filemanager-page">
     <div class="header">
@@ -30,27 +32,70 @@
         </aside>
         
         <main class="content">
-            <div class="toolbar">
-                <button @onclick="Refresh">🔄 重新整理</button>
-                <button @onclick="ShowNewFolderDialog">📁 新增資料夾</button>
+            @* Toolbar *@
+            <div class="file-toolbar">
+                <div class="toolbar-left">
+                    <button @onclick="Refresh" title="重新整理">
+                        <i class="rz-icon rzi-refresh"></i>
+                    </button>
+                    <button @onclick="GoUp" title="回到上層" disabled="@(!CanGoUp)">
+                        <i class="rz-icon rzi-arrow-up"></i>
+                    </button>
+                </div>
+                
+                <div class="toolbar-center">
+                    <div class="search-box">
+                        <i class="rz-icon rzi-search"></i>
+                        <input type="text" @bind="searchKeyword" @bind:event="oninput" 
+                               placeholder="搜尋檔案..." 
+                               @onkeyup="OnSearchKeyUp" />
+                        @if (!string.IsNullOrEmpty(searchKeyword))
+                        {
+                            <button class="clear-btn" @onclick="ClearSearch">
+                                <i class="rz-icon rzi-times"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+                
+                <div class="toolbar-right">
+                    <button @onclick="ShowNewFolderDialog" title="新增資料夾">
+                        <i class="rz-icon rzi-folder-plus"></i>
+                    </button>
+                    <button @onclick="ShowUploadDialog" title="上傳檔案">
+                        <i class="rz-icon rzi-upload"></i>
+                    </button>
+                </div>
             </div>
             
+            @* Search Results Header *@
+            @if (isSearching)
+            {
+                <div class="search-results-header">
+                    <span>搜尋結果：@searchKeyword</span>
+                    <button @onclick="ClearSearch">✕ 清除搜尋</button>
+                </div>
+            }
+            
+            @* File List *@
             <div class="file-list">
                 <table>
                     <thead>
                         <tr>
-                            <th>名稱</th>
-                            <th>大小</th>
-                            <th>修改日期</th>
+                            <th class="col-name">名稱</th>
+                            <th class="col-size">大小</th>
+                            <th class="col-date">修改日期</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if (fileItems != null && fileItems.Any())
+                        @if (displayItems != null && displayItems.Any())
                         {
-                            @foreach (var item in fileItems)
+                            @foreach (var item in displayItems)
                             {
-                                <tr @ondblclick="() => EnterFolder(item)">
-                                    <td>
+                                <tr @ondblclick="() => EnterFolder(item)"
+                                    @oncontextmenu:preventDefault="true"
+                                    @oncontextmenu="(e) => ShowContextMenu(item, e)">
+                                    <td class="col-name">
                                         @if (item.IsDirectory)
                                         {
                                             <i class="rz-icon rzi-folder" style="color: #ffc107;"></i>
@@ -61,15 +106,17 @@
                                         }
                                         @item.Name
                                     </td>
-                                    <td>@(item.IsDirectory ? "-" : FormatSize(item.Size))</td>
-                                    <td>@item.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td class="col-size">@(item.IsDirectory ? "-" : FormatSize(item.Size))</td>
+                                    <td class="col-date">@item.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
                                 </tr>
                             }
                         }
                         else
                         {
                             <tr>
-                                <td colspan="3" class="empty-state">此資料夾為空</td>
+                                <td colspan="3" class="empty-state">
+                                    @(isSearching ? "找不到符合的檔案" : "此資料夾為空")
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -79,15 +126,186 @@
     </div>
 </div>
 
+@* Context Menu *@
+@if (showContextMenu && contextMenuItem != null)
+{
+    <div class="context-menu" style="left: @contextMenuX px; top: @contextMenuY px;" @onclick:stopPropagation="true">
+        <div class="context-menu-item" @onclick="() => OpenRename(contextMenuItem)">
+            <i class="rz-icon rzi-edit"></i> 重新命名
+        </div>
+        @if (!contextMenuItem.IsDirectory)
+        {
+            <div class="context-menu-item" @onclick="() => DownloadFile(contextMenuItem)">
+                <i class="rz-icon rzi-download"></i> 下載
+            </div>
+        }
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item danger" @onclick="() => ShowDeleteConfirm(contextMenuItem)">
+            <i class="rz-icon rzi-trash"></i> 刪除
+        </div>
+    </div>
+}
+
+@* New Folder Dialog *@
 @if (showNewFolderDialog)
 {
-    <div class="dialog-overlay">
-        <div class="dialog">
-            <h3>新增資料夾</h3>
-            <input @bind="newFolderName" placeholder="資料夾名稱" />
-            <div class="dialog-buttons">
-                <button @onclick="CreateFolder">建立</button>
-                <button @onclick="() => showNewFolderDialog = false">取消</button>
+    <div class="dialog-overlay" @onclick="CloseNewFolderDialog">
+        <div class="dialog-content" @onclick:stopPropagation="true">
+            <h3>📁 新增資料夾</h3>
+            <div class="form-group">
+                <label>資料夾名稱：</label>
+                <input type="text" @bind="newFolderName" @bind:event="oninput" 
+                       placeholder="請輸入資料夾名稱" 
+                       @onkeyup="OnNewFolderKeyUp" autofocus />
+            </div>
+            <div class="dialog-actions">
+                <button class="btn-primary" @onclick="CreateFolder" disabled="@string.IsNullOrWhiteSpace(newFolderName)">
+                    建立
+                </button>
+                <button class="btn-secondary" @onclick="CloseNewFolderDialog">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* Rename Dialog *@
+@if (showRenameDialog && renameItem != null)
+{
+    <div class="dialog-overlay" @onclick="CloseRenameDialog">
+        <div class="dialog-content" @onclick:stopPropagation="true">
+            <h3>✏️ 重新命名</h3>
+            <div class="current-name">
+                <label>目前名稱：</label>
+                <code>@renameItem.Name</code>
+            </div>
+            <div class="form-group">
+                <label>新名稱：</label>
+                <input type="text" @bind="newFileName" @bind:event="oninput" 
+                       placeholder="請輸入新名稱" 
+                       @onkeyup="OnRenameKeyUp" autofocus />
+            </div>
+            @if (!string.IsNullOrEmpty(renameError))
+            {
+                <div class="error-message">@renameError</div>
+            }
+            <div class="dialog-actions">
+                <button class="btn-primary" @onclick="ConfirmRename" disabled="@string.IsNullOrWhiteSpace(newFileName)">
+                    確定
+                </button>
+                <button class="btn-secondary" @onclick="CloseRenameDialog">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* Delete Confirm Dialog *@
+@if (showDeleteDialog && deleteItem != null)
+{
+    <div class="dialog-overlay" @onclick="CloseDeleteDialog">
+        <div class="dialog-content" @onclick:stopPropagation="true">
+            <h3>⚠️ 確認刪除</h3>
+            <div class="delete-warning">
+                <p>確定要刪除以下項目嗎？</p>
+                <div class="item-info">
+                    @if (deleteItem.IsDirectory)
+                    {
+                        <i class="rz-icon rzi-folder" style="color: #ffc107;"></i>
+                    }
+                    else
+                    {
+                        <i class="rz-icon rzi-file" style="color: #6c757d;"></i>
+                    }
+                    <code>@deleteItem.Name</code>
+                </div>
+                @if (deleteItem.IsDirectory)
+                {
+                    <p class="warning-text">⚡ 此操作將刪除資料夾及其所有內容，且無法復原！</p>
+                }
+                else
+                {
+                    <p class="warning-text">⚡ 此操作無法復原！</p>
+                }
+            </div>
+            <div class="dialog-actions">
+                <button class="btn-danger" @onclick="ConfirmDelete">
+                    刪除
+                </button>
+                <button class="btn-secondary" @onclick="CloseDeleteDialog">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* Upload Dialog *@
+@if (showUploadDialog)
+{
+    <div class="dialog-overlay" @onclick="CloseUploadDialog">
+        <div class="dialog-content upload-dialog" @onclick:stopPropagation="true">
+            <h3>📤 上傳檔案</h3>
+            
+            <div class="upload-area">
+                <i class="rz-icon rzi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
+                <p>選擇要上傳的檔案</p>
+                <InputFile OnChange="OnFilesSelected" multiple style="display: none;" id="fileInput" />
+                <label class="file-input-label" for="fileInput">
+                    選擇檔案
+                </label>
+                <p class="hint">支援多檔案上傳</p>
+            </div>
+            
+            @if (selectedFiles.Any())
+            {
+                <div class="file-list">
+                    <h4>已選擇的檔案：</h4>
+                    @foreach (var file in selectedFiles)
+                    {
+                        <div class="file-item">
+                            <i class="rz-icon rzi-file" style="color: #6c757d;"></i>
+                            <span>@file.Name</span>
+                            <span class="file-size">(@FormatSize(file.Size))</span>
+                        </div>
+                    }
+                </div>
+            }
+            
+            <div class="destination-path">
+                <label>上傳至：</label>
+                <code>@currentPath</code>
+            </div>
+            
+            <div class="overwrite-option">
+                <label>
+                    <input type="checkbox" @bind="overwriteExisting" />
+                    覆蓋已存在的檔案
+                </label>
+            </div>
+            
+            @if (!string.IsNullOrEmpty(uploadError))
+            {
+                <div class="error-message">@uploadError</div>
+            }
+            
+            @if (isUploading)
+            {
+                <div class="progress-bar">
+                    <div class="progress" style="width: @uploadProgress%"></div>
+                </div>
+                <p class="uploading-text">上傳中... @uploadProgress%</p>
+            }
+            
+            <div class="dialog-actions">
+                <button class="btn-primary" @onclick="UploadFiles" disabled="@(!selectedFiles.Any() || isUploading)">
+                    上傳
+                </button>
+                <button class="btn-secondary" @onclick="CloseUploadDialog" disabled="@isUploading">
+                    取消
+                </button>
             </div>
         </div>
     </div>
@@ -96,9 +314,36 @@
 @code {
     private string currentPath = "/home/devpro/data";
     private List<FileItem> fileItems = new();
+    private List<FileItem> searchResults = new();
     private List<FolderTreeNode> folderTreeNodes = new();
+    
     private bool showNewFolderDialog = false;
+    private bool showRenameDialog = false;
+    private bool showDeleteDialog = false;
+    private bool showUploadDialog = false;
+    private bool showContextMenu = false;
+    
     private string newFolderName = "";
+    private FileItem? renameItem = null;
+    private FileItem? deleteItem = null;
+    private FileItem? contextMenuItem = null;
+    private string newFileName = "";
+    private string renameError = "";
+    
+    private List<IBrowserFile> selectedFiles = new();
+    private bool overwriteExisting = false;
+    private bool isUploading = false;
+    private int uploadProgress = 0;
+    private string uploadError = "";
+    
+    private bool isSearching = false;
+    private string searchKeyword = "";
+    
+    private int contextMenuX = 0;
+    private int contextMenuY = 0;
+    
+    private List<FileItem> displayItems => isSearching ? searchResults : fileItems;
+    private bool CanGoUp => currentPath != "/home/devpro/data";
 
     protected override async Task OnInitializedAsync()
     {
@@ -130,6 +375,7 @@
     private async Task NavigateTo(string path)
     {
         currentPath = path;
+        isSearching = false;
         await Refresh();
     }
 
@@ -138,13 +384,31 @@
         if (item.IsDirectory)
         {
             currentPath = item.Path;
+            isSearching = false;
             await Refresh();
         }
     }
 
+    private async Task GoUp()
+    {
+        if (CanGoUp)
+        {
+            var parentPath = System.IO.Directory.GetParent(currentPath)?.FullName ?? "/home/devpro/data";
+            await NavigateTo(parentPath);
+        }
+    }
+
+    // ==================== New Folder ====================
     private void ShowNewFolderDialog()
     {
         showNewFolderDialog = true;
+        newFolderName = "";
+        showContextMenu = false;
+    }
+
+    private void CloseNewFolderDialog()
+    {
+        showNewFolderDialog = false;
         newFolderName = "";
     }
 
@@ -155,7 +419,7 @@
             try
             {
                 await FolderService.CreateFolderAsync(currentPath, newFolderName);
-                showNewFolderDialog = false;
+                CloseNewFolderDialog();
                 await Refresh();
             }
             catch (Exception ex)
@@ -165,6 +429,257 @@
         }
     }
 
+    private async Task OnNewFolderKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(newFolderName))
+        {
+            await CreateFolder();
+        }
+    }
+
+    // ==================== Context Menu ====================
+    private void ShowContextMenu(FileItem item, MouseEventArgs e)
+    {
+        contextMenuItem = item;
+        contextMenuX = (int)e.ClientX;
+        contextMenuY = (int)e.ClientY;
+        showContextMenu = true;
+    }
+
+    private void CloseContextMenu()
+    {
+        showContextMenu = false;
+        contextMenuItem = null;
+    }
+
+    // ==================== Rename ====================
+    private void OpenRename(FileItem item)
+    {
+        CloseContextMenu();
+        renameItem = item;
+        newFileName = item.Name;
+        renameError = "";
+        showRenameDialog = true;
+    }
+
+    private void CloseRenameDialog()
+    {
+        showRenameDialog = false;
+        renameItem = null;
+        newFileName = "";
+        renameError = "";
+    }
+
+    private async Task ConfirmRename()
+    {
+        if (renameItem == null || string.IsNullOrWhiteSpace(newFileName))
+            return;
+
+        if (newFileName.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0)
+        {
+            renameError = "名稱包含無效字元";
+            return;
+        }
+
+        try
+        {
+            var parentDir = System.IO.Path.GetDirectoryName(renameItem.Path) ?? currentPath;
+            var newPath = System.IO.Path.Combine(parentDir, newFileName);
+            await FileService.MoveFileAsync(new List<string> { renameItem.Path }, newPath);
+            CloseRenameDialog();
+            await Refresh();
+        }
+        catch (Exception ex)
+        {
+            renameError = ex.Message;
+        }
+    }
+
+    private async Task OnRenameKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(newFileName))
+        {
+            await ConfirmRename();
+        }
+        else if (e.Key == "Escape")
+        {
+            CloseRenameDialog();
+        }
+    }
+
+    // ==================== Delete ====================
+    private void ShowDeleteConfirm(FileItem item)
+    {
+        CloseContextMenu();
+        deleteItem = item;
+        showDeleteDialog = true;
+    }
+
+    private void CloseDeleteDialog()
+    {
+        showDeleteDialog = false;
+        deleteItem = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (deleteItem == null)
+            return;
+
+        try
+        {
+            if (deleteItem.IsDirectory)
+            {
+                await FolderService.DeleteFolderAsync(deleteItem.Path);
+            }
+            else
+            {
+                await FileService.DeleteFileAsync(deleteItem.Path);
+            }
+            CloseDeleteDialog();
+            await Refresh();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting: {ex.Message}");
+        }
+    }
+
+    // ==================== Download ====================
+    private void DownloadFile(FileItem item)
+    {
+        CloseContextMenu();
+        // Trigger download via JS interop
+        if (!item.IsDirectory)
+        {
+            JS.InvokeVoidAsync("eval", $"window.location.href = '/api/files/download?path={Uri.EscapeDataString(item.Path)}'");
+        }
+    }
+
+    // ==================== Upload ====================
+    private void ShowUploadDialog()
+    {
+        showUploadDialog = true;
+        selectedFiles.Clear();
+        overwriteExisting = false;
+        uploadError = "";
+        isUploading = false;
+        uploadProgress = 0;
+        showContextMenu = false;
+    }
+
+    private void CloseUploadDialog()
+    {
+        if (!isUploading)
+        {
+            showUploadDialog = false;
+            selectedFiles.Clear();
+        }
+    }
+
+    private void OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        selectedFiles.Clear();
+        foreach (var file in e.GetMultipleFiles())
+        {
+            selectedFiles.Add(file);
+        }
+        StateHasChanged();
+    }
+
+    private async Task UploadFiles()
+    {
+        if (!selectedFiles.Any())
+            return;
+
+        isUploading = true;
+        uploadError = "";
+        uploadProgress = 0;
+
+        try
+        {
+            var totalFiles = selectedFiles.Count;
+            var uploadedCount = 0;
+
+            foreach (var file in selectedFiles)
+            {
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 1024L * 1024L * 1024L));
+                content.Add(fileContent, "files", file.Name);
+                content.Add(new StringContent(currentPath), "destinationPath");
+                content.Add(new StringContent(overwriteExisting.ToString().ToLower()), "overwrite");
+
+                var response = await Http.PostAsync("/api/upload", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    uploadedCount++;
+                }
+
+                uploadProgress = (int)((uploadedCount / (double)totalFiles) * 100);
+                StateHasChanged();
+            }
+
+            CloseUploadDialog();
+            await Refresh();
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"上傳失敗：{ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    // ==================== Search ====================
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await PerformSearch();
+        }
+    }
+
+    private async Task PerformSearch()
+    {
+        if (string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            ClearSearch();
+            return;
+        }
+
+        isSearching = true;
+
+        try
+        {
+            var request = new SearchRequest
+            {
+                SearchPath = currentPath,
+                Keyword = searchKeyword
+            };
+            var response = await FileService.SearchFilesAsync(request);
+            if (response != null)
+            {
+                searchResults = response.Results ?? new List<FileItem>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Search error: {ex.Message}");
+            searchResults = new List<FileItem>();
+        }
+    }
+
+    private void ClearSearch()
+    {
+        isSearching = false;
+        searchKeyword = "";
+        searchResults.Clear();
+    }
+
+    // ==================== Utilities ====================
     private string FormatSize(long size)
     {
         string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
@@ -196,6 +711,11 @@
 .header h1 {
     margin: 0;
     font-size: 1.5rem;
+}
+
+.root-folder {
+    font-size: 0.875rem;
+    opacity: 0.9;
 }
 
 .main-layout {
@@ -242,23 +762,104 @@
     gap: 0.5rem;
 }
 
-.toolbar {
+/* Toolbar */
+.file-toolbar {
     display: flex;
-    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    gap: 1rem;
 }
 
-.toolbar button {
-    padding: 0.5rem 1rem;
+.toolbar-left,
+.toolbar-right {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.toolbar-center {
+    flex: 1;
+    max-width: 400px;
+}
+
+.file-toolbar button {
+    padding: 0.5rem 0.75rem;
     border: 1px solid #dee2e6;
-    background: #fff;
+    background: white;
     border-radius: 4px;
     cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
-.toolbar button:hover {
+.file-toolbar button:hover:not(:disabled) {
     background: #e9ecef;
+    border-color: #adb5bd;
 }
 
+.file-toolbar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.file-toolbar button i {
+    font-size: 1.125rem;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 0 0.5rem;
+}
+
+.search-box i {
+    color: #6c757d;
+}
+
+.search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.search-box input::placeholder {
+    color: #adb5bd;
+}
+
+.clear-btn {
+    padding: 0.25rem !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* Search Results */
+.search-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: #e7f1ff;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.search-results-header button {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+/* File List */
 .file-list {
     flex: 1;
     overflow: auto;
@@ -281,10 +882,25 @@
 .file-list th {
     background: #f8f9fa;
     font-weight: 600;
+    position: sticky;
+    top: 0;
 }
 
 .file-list tr:hover {
     background: #f8f9fa;
+    cursor: pointer;
+}
+
+.col-name {
+    width: 50%;
+}
+
+.col-size {
+    width: 20%;
+}
+
+.col-date {
+    width: 30%;
 }
 
 .empty-state {
@@ -299,52 +915,314 @@
     color: #6c757d;
 }
 
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: 150px;
+    z-index: 1000;
+    padding: 0.25rem 0;
+}
+
+.context-menu-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.context-menu-item:hover {
+    background: #f8f9fa;
+}
+
+.context-menu-item.danger {
+    color: #dc3545;
+}
+
+.context-menu-item.danger:hover {
+    background: #fff5f5;
+}
+
+.context-menu-separator {
+    height: 1px;
+    background: #dee2e6;
+    margin: 0.25rem 0;
+}
+
+/* Dialog */
 .dialog-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1000;
 }
 
-.dialog {
+.dialog-content {
     background: white;
     padding: 1.5rem;
     border-radius: 8px;
-    min-width: 300px;
+    min-width: 400px;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.dialog h3 {
-    margin-top: 0;
+.dialog-content h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
 }
 
-.dialog input {
+.current-name {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.current-name label {
+    font-weight: 500;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.current-name code {
+    display: block;
+    margin-top: 0.25rem;
+    word-break: break-all;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input[type="text"] {
     width: 100%;
     padding: 0.5rem;
-    margin: 1rem 0;
-    border: 1px solid #dee2e6;
+    border: 1px solid #ddd;
     border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
 }
 
-.dialog-buttons {
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: #0d6efd;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.dialog-actions {
     display: flex;
-    gap: 0.5rem;
     justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
 }
 
-.dialog-buttons button {
+.dialog-actions button {
     padding: 0.5rem 1rem;
-    border: 1px solid #dee2e6;
-    background: #fff;
     border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: #0d6efd;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0b5ed7;
+}
+
+.btn-primary:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #f8f9fa;
+}
+
+.btn-secondary:disabled {
+    cursor: not-allowed;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #bb2d3b;
+}
+
+/* Delete Dialog */
+.delete-warning p {
+    margin: 0 0 0.5rem 0;
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+}
+
+.item-info code {
+    word-break: break-all;
+}
+
+.warning-text {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+/* Upload Dialog */
+.upload-dialog {
+    min-width: 500px;
+    max-width: 600px;
+}
+
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upload-area:hover {
+    border-color: #0d6efd;
+}
+
+.upload-area p {
+    margin: 0.5rem 0;
+    color: #6c757d;
+}
+
+.upload-area .hint {
+    font-size: 0.875rem;
+}
+
+.file-input-label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #0d6efd;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+.file-input-label:hover {
+    background: #0b5ed7;
+}
+
+.file-list {
+    margin-top: 1rem;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.file-list h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+}
+
+.file-item .file-size {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.destination-path {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.destination-path label {
+    font-weight: 500;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.destination-path code {
+    display: block;
+    margin-top: 0.25rem;
+    word-break: break-all;
+}
+
+.overwrite-option {
+    margin-top: 0.5rem;
+}
+
+.overwrite-option label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     cursor: pointer;
 }
 
-.dialog-buttons button:hover {
+.progress-bar {
+    height: 8px;
     background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.progress {
+    height: 100%;
+    background: #0d6efd;
+    transition: width 0.3s;
+}
+
+.uploading-text {
+    text-align: center;
+    color: #0d6efd;
+    margin: 0.5rem 0 0 0;
 }
 </style>
