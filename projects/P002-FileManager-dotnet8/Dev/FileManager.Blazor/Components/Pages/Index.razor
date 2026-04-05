@@ -1,10 +1,12 @@
 @page "/"
-@inject Services.IFileService FileService
-@inject Services.IFolderService FolderService
+@inject IFileService FileService
+@inject IFolderService FolderService
+@inject IConfigService ConfigService
 
 <div class="filemanager-page">
     <div class="header">
         <h1>📁 檔案管理器</h1>
+        <span class="root-folder">根目錄：@currentPath</span>
     </div>
 
     <div class="main-layout">
@@ -15,7 +17,7 @@
                 <ul class="tree-list">
                 @foreach (var node in folderTreeNodes)
                 {
-                    <li @onclick="() => OnFolderSelected(node.Path)">
+                    <li @onclick="() => NavigateTo(node.Path)">
                         <i class="rz-icon rzi-folder"></i> @node.Name
                     </li>
                 }
@@ -28,13 +30,8 @@
         </aside>
         
         <main class="content">
-            <div class="path-display">
-                <span class="path-label">路徑：</span>
-                <code class="path-value">@currentPath</code>
-            </div>
-            
             <div class="toolbar">
-                <button @onclick="RefreshCurrentFolder">🔄 重新整理</button>
+                <button @onclick="Refresh">🔄 重新整理</button>
                 <button @onclick="ShowNewFolderDialog">📁 新增資料夾</button>
             </div>
             
@@ -82,74 +79,90 @@
     </div>
 </div>
 
+@if (showNewFolderDialog)
+{
+    <div class="dialog-overlay">
+        <div class="dialog">
+            <h3>新增資料夾</h3>
+            <input @bind="newFolderName" placeholder="資料夾名稱" />
+            <div class="dialog-buttons">
+                <button @onclick="CreateFolder">建立</button>
+                <button @onclick="() => showNewFolderDialog = false">取消</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private string currentPath = "/home/devpro/data";
-    private List<Models.Domain.FileItem> fileItems = new();
-    private List<Models.Responses.FolderTreeNode> folderTreeNodes = new();
+    private List<FileItem> fileItems = new();
+    private List<FolderTreeNode> folderTreeNodes = new();
+    private bool showNewFolderDialog = false;
+    private string newFolderName = "";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadFiles();
-        await LoadFolderTree();
+        await Refresh();
     }
 
-    private async Task LoadFiles()
+    private async Task Refresh()
     {
         try
         {
-            var result = await FileService.GetFilesAsync(currentPath);
-            if (result != null)
+            var fileResult = await FileService.GetFilesAsync(currentPath);
+            if (fileResult != null)
             {
-                fileItems = result.Items ?? new List<Models.Domain.FileItem>();
+                fileItems = fileResult.Items ?? new List<FileItem>();
+            }
+
+            var treeResult = await FolderService.GetFolderTreeAsync(currentPath);
+            if (treeResult != null && treeResult.Nodes != null)
+            {
+                folderTreeNodes = treeResult.Nodes;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading files: {ex.Message}");
+            Console.WriteLine($"Error loading: {ex.Message}");
         }
     }
 
-    private async Task LoadFolderTree()
-    {
-        try
-        {
-            var result = await FolderService.GetFolderTreeAsync(currentPath);
-            if (result != null && result.Nodes != null)
-            {
-                folderTreeNodes = result.Nodes;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading folder tree: {ex.Message}");
-        }
-    }
-
-    private async Task RefreshCurrentFolder()
-    {
-        await LoadFiles();
-    }
-
-    private async Task OnFolderSelected(string path)
+    private async Task NavigateTo(string path)
     {
         currentPath = path;
-        await LoadFiles();
-        await LoadFolderTree();
+        await Refresh();
     }
 
-    private async Task EnterFolder(Models.Domain.FileItem item)
+    private async Task EnterFolder(FileItem item)
     {
         if (item.IsDirectory)
         {
             currentPath = item.Path;
-            await LoadFiles();
+            await Refresh();
         }
     }
 
-    private Task ShowNewFolderDialog()
+    private void ShowNewFolderDialog()
     {
-        // TODO: Show dialog
-        return Task.CompletedTask;
+        showNewFolderDialog = true;
+        newFolderName = "";
+    }
+
+    private async Task CreateFolder()
+    {
+        if (!string.IsNullOrWhiteSpace(newFolderName))
+        {
+            try
+            {
+                await FolderService.CreateFolderAsync(currentPath, newFolderName);
+                showNewFolderDialog = false;
+                await Refresh();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating folder: {ex.Message}");
+            }
+        }
     }
 
     private string FormatSize(long size)
@@ -220,12 +233,6 @@
     background: #e9ecef;
 }
 
-.loading {
-    padding: 1rem;
-    text-align: center;
-    color: #6c757d;
-}
-
 .content {
     flex: 1;
     display: flex;
@@ -233,29 +240,6 @@
     overflow: hidden;
     padding: 1rem;
     gap: 0.5rem;
-}
-
-.path-display {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-}
-
-.path-label {
-    font-weight: 600;
-    color: #495057;
-}
-
-.path-value {
-    flex: 1;
-    background: #f8f9fa;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-family: monospace;
 }
 
 .toolbar {
@@ -307,5 +291,60 @@
     text-align: center;
     padding: 2rem;
     color: #6c757d;
+}
+
+.loading {
+    padding: 1rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    min-width: 300px;
+}
+
+.dialog h3 {
+    margin-top: 0;
+}
+
+.dialog input {
+    width: 100%;
+    padding: 0.5rem;
+    margin: 1rem 0;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.dialog-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.dialog-buttons button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.dialog-buttons button:hover {
+    background: #e9ecef;
 }
 </style>

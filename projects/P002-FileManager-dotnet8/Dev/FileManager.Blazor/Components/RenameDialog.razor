@@ -1,0 +1,225 @@
+@namespace FileManager.Blazor.Components
+
+@if (IsVisible)
+{
+    <div class="dialog-overlay" @onclick="Cancel">
+        <div class="dialog-content" @onclick:stopPropagation="true">
+            <h3>✏️ 重新命名</h3>
+            
+            <div class="current-name">
+                <label>目前名稱：</label>
+                <code>@CurrentName</code>
+            </div>
+            
+            <div class="form-group">
+                <label>新名稱：</label>
+                <input type="text" @bind="NewName" @bind:event="oninput" 
+                       placeholder="請輸入新名稱" 
+                       @onkeyup="OnKeyUp" />
+            </div>
+            
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="error-message">@ErrorMessage</div>
+            }
+            
+            <div class="dialog-actions">
+                <button class="btn-primary" @onclick="Confirm" disabled="@string.IsNullOrWhiteSpace(NewName)">
+                    確定
+                </button>
+                <button class="btn-secondary" @onclick="Cancel">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string CurrentPath { get; set; } = "";
+    [Parameter] public string CurrentName { get; set; } = "";
+    [Parameter] public bool IsDirectory { get; set; }
+    [Parameter] public EventCallback<(string oldPath, string newName)> OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string NewName { get; set; } = "";
+    private string ErrorMessage { get; set; } = "";
+
+    public void Show(string path, string currentName, bool isDirectory)
+    {
+        CurrentPath = path;
+        CurrentName = currentName;
+        IsDirectory = isDirectory;
+        NewName = currentName;
+        ErrorMessage = "";
+        IsVisible = true;
+        StateHasChanged();
+    }
+
+    public void Hide()
+    {
+        IsVisible = false;
+        NewName = "";
+        ErrorMessage = "";
+        StateHasChanged();
+    }
+
+    private async Task Confirm()
+    {
+        if (string.IsNullOrWhiteSpace(NewName))
+        {
+            ErrorMessage = "請輸入新名稱";
+            return;
+        }
+
+        if (NewName.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0)
+        {
+            ErrorMessage = "名稱包含無效字元";
+            return;
+        }
+
+        if (NewName == CurrentName)
+        {
+            await Cancel();
+            return;
+        }
+
+        await OnConfirm.InvokeAsync((CurrentPath, NewName));
+        Hide();
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+        Hide();
+    }
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(NewName))
+        {
+            await Confirm();
+        }
+        else if (e.Key == "Escape")
+        {
+            await Cancel();
+        }
+    }
+}
+
+<style>
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    min-width: 400px;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-content h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+}
+
+.current-name {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.current-name label {
+    font-weight: 500;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.current-name code {
+    display: block;
+    margin-top: 0.25rem;
+    word-break: break-all;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: #0d6efd;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.dialog-actions button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: #0d6efd;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0b5ed7;
+}
+
+.btn-primary:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+    background: #f8f9fa;
+}
+</style>

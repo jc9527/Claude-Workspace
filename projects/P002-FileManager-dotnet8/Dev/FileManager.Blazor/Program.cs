@@ -27,6 +27,9 @@ builder.Host.UseSerilog();
 builder.Services.Configure<FileManagerOptions>(
     builder.Configuration.GetSection("FileManager"));
 
+// Register HttpClient for Blazor SSR
+builder.Services.AddHttpClient();
+
 // Register services
 builder.Services.AddScoped<IConfigService, ConfigService>();
 builder.Services.AddScoped<IFileService, FileService>();

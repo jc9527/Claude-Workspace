@@ -1,0 +1,404 @@
+@namespace FileManager.Blazor.Components
+@using Microsoft.AspNetCore.Components.Forms
+@inject HttpClient Http
+
+@if (IsVisible)
+{
+    <div class="dialog-overlay" @onclick="Cancel">
+        <div class="dialog-content" @onclick:stopPropagation="true">
+            <h3>📤 上傳檔案</h3>
+            
+            <div class="upload-area @(IsDragOver ? "drag-over" : "")"
+                 @ondragover="OnDragOver"
+                 @ondragleave="OnDragLeave"
+                 @ondrop="OnDrop">
+                <i class="rz-icon rzi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
+                <p>拖曳檔案到這裡，或</p>
+                <label class="file-input-label">
+                    選擇檔案
+                    <InputFile OnChange="OnFileSelected" multiple style="display: none;" />
+                </label>
+                <p class="hint">支援多檔案上傳</p>
+            </div>
+            
+            @if (SelectedFiles.Any())
+            {
+                <div class="file-list">
+                    <h4>已選擇的檔案：</h4>
+                    @foreach (var file in SelectedFiles)
+                    {
+                        <div class="file-item">
+                            <i class="rz-icon rzi-file" style="color: #6c757d;"></i>
+                            <span>@file.Name</span>
+                            <span class="file-size">(@FormatSize(file.Size))</span>
+                        </div>
+                    }
+                </div>
+            }
+            
+            <div class="destination-path">
+                <label>上傳至：</label>
+                <code>@DestinationPath</code>
+            </div>
+            
+            <div class="overwrite-option">
+                <label>
+                    <input type="checkbox" @bind="Overwrite" />
+                    覆蓋已存在的檔案
+                </label>
+            </div>
+            
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="error-message">@ErrorMessage</div>
+            }
+            
+            @if (IsUploading)
+            {
+                <div class="progress-bar">
+                    <div class="progress" style="width: @UploadProgress%"></div>
+                </div>
+                <p class="uploading-text">上傳中... @UploadProgress%</p>
+            }
+            
+            <div class="dialog-actions">
+                <button class="btn-primary" @onclick="Upload" disabled="@(!SelectedFiles.Any() || IsUploading)">
+                    上傳
+                </button>
+                <button class="btn-secondary" @onclick="Cancel" disabled="@IsUploading">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string DestinationPath { get; set; } = "/";
+    [Parameter] public EventCallback OnUploadComplete { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private List<IBrowserFile> SelectedFiles { get; set; } = new();
+    private bool IsDragOver { get; set; }
+    private bool Overwrite { get; set; }
+    private bool IsUploading { get; set; }
+    private int UploadProgress { get; set; }
+    private string ErrorMessage { get; set; } = "";
+
+    public void Show(string destPath)
+    {
+        DestinationPath = destPath;
+        SelectedFiles.Clear();
+        Overwrite = false;
+        IsUploading = false;
+        UploadProgress = 0;
+        ErrorMessage = "";
+        IsVisible = true;
+        StateHasChanged();
+    }
+
+    public void Hide()
+    {
+        IsVisible = false;
+        SelectedFiles.Clear();
+        ErrorMessage = "";
+        IsUploading = false;
+        UploadProgress = 0;
+        StateHasChanged();
+    }
+
+    private void OnDragOver(DragEventArgs e)
+    {
+        IsDragOver = true;
+        StateHasChanged();
+    }
+
+    private void OnDragLeave(DragEventArgs e)
+    {
+        IsDragOver = false;
+        StateHasChanged();
+    }
+
+    private void OnDrop(DragEventArgs e)
+    {
+        IsDragOver = false;
+        // Drag and drop in Blazor doesn't provide file data directly
+        // User should use the file picker instead
+        StateHasChanged();
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        SelectedFiles.Clear();
+        foreach (var file in e.GetMultipleFiles())
+        {
+            SelectedFiles.Add(file);
+        }
+        StateHasChanged();
+    }
+
+    private async Task Upload()
+    {
+        if (!SelectedFiles.Any())
+        {
+            ErrorMessage = "請選擇要上傳的檔案";
+            return;
+        }
+
+        IsUploading = true;
+        ErrorMessage = "";
+        UploadProgress = 0;
+
+        try
+        {
+            var totalFiles = SelectedFiles.Count;
+            var uploadedCount = 0;
+
+            foreach (var file in SelectedFiles)
+            {
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 1024L * 1024L * 1024L));
+                content.Add(fileContent, "files", file.Name);
+                content.Add(new StringContent(DestinationPath), "destinationPath");
+                content.Add(new StringContent(Overwrite.ToString().ToLower()), "overwrite");
+
+                var response = await Http.PostAsync("/api/upload", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    uploadedCount++;
+                }
+
+                UploadProgress = (int)((uploadedCount / (double)totalFiles) * 100);
+                StateHasChanged();
+            }
+
+            await OnUploadComplete.InvokeAsync();
+            Hide();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"上傳失敗：{ex.Message}";
+        }
+        finally
+        {
+            IsUploading = false;
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+        Hide();
+    }
+
+    private static string FormatSize(long size)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double len = size;
+        while (len >= 1024 && order < suffixes.Length - 1)
+        {
+            order++;
+            len /= 1024;
+        }
+        return $"{len:0.##} {suffixes[order]}";
+    }
+}
+
+<style>
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    min-width: 500px;
+    max-width: 600px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-content h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+}
+
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upload-area.drag-over {
+    border-color: #0d6efd;
+    background: #e7f1ff;
+}
+
+.upload-area:hover {
+    border-color: #0d6efd;
+}
+
+.upload-area p {
+    margin: 0.5rem 0;
+    color: #6c757d;
+}
+
+.upload-area .hint {
+    font-size: 0.875rem;
+}
+
+.file-input-label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #0d6efd;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+.file-input-label:hover {
+    background: #0b5ed7;
+}
+
+.file-list {
+    margin-top: 1rem;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.file-list h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+}
+
+.file-item .file-size {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.destination-path {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.destination-path label {
+    font-weight: 500;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.destination-path code {
+    display: block;
+    margin-top: 0.25rem;
+    word-break: break-all;
+}
+
+.overwrite-option {
+    margin-top: 0.5rem;
+}
+
+.overwrite-option label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+.progress-bar {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.progress {
+    height: 100%;
+    background: #0d6efd;
+    transition: width 0.3s;
+}
+
+.uploading-text {
+    text-align: center;
+    color: #0d6efd;
+    margin: 0.5rem 0 0 0;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.dialog-actions button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: #0d6efd;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0b5ed7;
+}
+
+.btn-primary:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #f8f9fa;
+}
+
+.btn-secondary:disabled {
+    cursor: not-allowed;
+}
+</style>

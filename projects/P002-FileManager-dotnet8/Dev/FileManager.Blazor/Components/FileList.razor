@@ -1,12 +1,12 @@
 @namespace FileManager.Blazor.Components
 
-<div class="file-list">
+<div class="file-list-container" @oncontextmenu="OnContextMenuShow" @onclick="OnClick">
     <table>
         <thead>
             <tr>
-                <th>名稱</th>
-                <th>大小</th>
-                <th>修改日期</th>
+                <th class="col-name">名稱</th>
+                <th class="col-size">大小</th>
+                <th class="col-date">修改日期</th>
             </tr>
         </thead>
         <tbody>
@@ -14,8 +14,13 @@
             {
                 @foreach (var item in Items)
                 {
-                    <tr @ondblclick="() => OnFolderEnter.InvokeAsync(item)">
-                        <td>
+                    <tr class="@(IsSelected(item) ? "selected" : "")"
+                        @ondblclick="() => OnFolderEnter.InvokeAsync(item)"
+                        @onclick:stopPropagation="true"
+                        @onclick="() => SelectItem(item)"
+                        @oncontextmenu:preventDefault="true"
+                        @oncontextmenu="(e) => OnContextMenuShowForItem(item, e)">
+                        <td class="col-name">
                             @if (item.IsDirectory)
                             {
                                 <i class="rz-icon rzi-folder" style="color: #ffc107;"></i>
@@ -24,15 +29,15 @@
                             {
                                 <i class="rz-icon rzi-file" style="color: #6c757d;"></i>
                             }
-                            @item.Name
+                            <span class="item-name">@item.Name</span>
                         </td>
-                        <td>
+                        <td class="col-size">
                             @if (!item.IsDirectory)
                             {
                                 @FormatSize(item.Size)
                             }
                         </td>
-                        <td>@item.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="col-date">@item.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
                     </tr>
                 }
             }
@@ -46,11 +51,100 @@
     </table>
 </div>
 
+@if (ShowContextMenu && ContextMenuItem != null)
+{
+    <div class="context-menu" 
+         style="left: @ContextMenuX px; top: @ContextMenuY px;"
+         @onclick:stopPropagation="true">
+        <div class="context-menu-item" @onclick="OpenRename">
+            <i class="rz-icon rzi-edit"></i> 重新命名
+        </div>
+        @if (!ContextMenuItem.IsDirectory)
+        {
+            <div class="context-menu-item" @onclick="Download">
+                <i class="rz-icon rzi-download"></i> 下載
+            </div>
+        }
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item danger" @onclick="Delete">
+            <i class="rz-icon rzi-trash"></i> 刪除
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public List<FileItem>? Items { get; set; }
     [Parameter] public EventCallback<FileItem> OnFolderEnter { get; set; }
+    [Parameter] public EventCallback<FileItem> OnRename { get; set; }
+    [Parameter] public EventCallback<FileItem> OnDelete { get; set; }
+    [Parameter] public EventCallback<FileItem> OnDownload { get; set; }
 
-    private string FormatSize(long size)
+    private FileItem? SelectedItem { get; set; }
+    private bool ShowContextMenu { get; set; }
+    private FileItem? ContextMenuItem { get; set; }
+    private int ContextMenuX { get; set; }
+    private int ContextMenuY { get; set; }
+
+    private bool IsSelected(FileItem item) => SelectedItem?.Path == item.Path;
+
+    private void SelectItem(FileItem item)
+    {
+        SelectedItem = item;
+        ShowContextMenu = false;
+        StateHasChanged();
+    }
+
+    private void OnClick()
+    {
+        ShowContextMenu = false;
+        SelectedItem = null;
+        StateHasChanged();
+    }
+
+    private void OnContextMenuShow(MouseEventArgs e)
+    {
+        // Only show if clicking on the table background
+        ShowContextMenu = false;
+    }
+
+    private void OnContextMenuShowForItem(FileItem item, MouseEventArgs e)
+    {
+        ContextMenuItem = item;
+        SelectedItem = item;
+        ContextMenuX = (int)e.ClientX;
+        ContextMenuY = (int)e.ClientY;
+        ShowContextMenu = true;
+        StateHasChanged();
+    }
+
+    private async Task OpenRename()
+    {
+        if (ContextMenuItem != null)
+        {
+            await OnRename.InvokeAsync(ContextMenuItem);
+        }
+        ShowContextMenu = false;
+    }
+
+    private async Task Download()
+    {
+        if (ContextMenuItem != null && !ContextMenuItem.IsDirectory)
+        {
+            await OnDownload.InvokeAsync(ContextMenuItem);
+        }
+        ShowContextMenu = false;
+    }
+
+    private async Task Delete()
+    {
+        if (ContextMenuItem != null)
+        {
+            await OnDelete.InvokeAsync(ContextMenuItem);
+        }
+        ShowContextMenu = false;
+    }
+
+    private static string FormatSize(long size)
     {
         string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
         int order = 0;
@@ -63,3 +157,100 @@
         return $"{len:0.##} {suffixes[order]}";
     }
 }
+
+<style>
+.file-list-container {
+    flex: 1;
+    overflow: auto;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.file-list-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.file-list-container th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.file-list-container td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.file-list-container tr:hover {
+    background: #f8f9fa;
+}
+
+.file-list-container tr.selected {
+    background: #e7f1ff;
+}
+
+.col-name {
+    width: 50%;
+}
+
+.col-size {
+    width: 20%;
+}
+
+.col-date {
+    width: 30%;
+}
+
+.file-list-container .item-name {
+    margin-left: 0.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: 150px;
+    z-index: 1000;
+    padding: 0.25rem 0;
+}
+
+.context-menu-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.context-menu-item:hover {
+    background: #f8f9fa;
+}
+
+.context-menu-item.danger {
+    color: #dc3545;
+}
+
+.context-menu-item.danger:hover {
+    background: #fff5f5;
+}
+
+.context-menu-separator {
+    height: 1px;
+    background: #dee2e6;
+    margin: 0.25rem 0;
+}
+</style>

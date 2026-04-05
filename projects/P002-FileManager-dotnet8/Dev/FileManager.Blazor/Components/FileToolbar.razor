@@ -1,25 +1,165 @@
 @namespace FileManager.Blazor.Components
 
 <div class="file-toolbar">
-    <button @onclick="Refresh">
-        <i class="rz-icon rzi-refresh"></i> 重新整理
-    </button>
-    <button @onclick="NewFolder">
-        <i class="rz-icon rzi-plus"></i> 新增資料夾
-    </button>
+    <div class="toolbar-left">
+        <button @onclick="Refresh" title="重新整理">
+            <i class="rz-icon rzi-refresh"></i>
+        </button>
+        <button @onclick="GoUp" title="回到上層" disabled="@(!CanGoUp)">
+            <i class="rz-icon rzi-arrow-up"></i>
+        </button>
+    </div>
+    
+    <div class="toolbar-center">
+        <div class="search-box">
+            <i class="rz-icon rzi-search"></i>
+            <input type="text" @bind="SearchKeyword" @bind:event="oninput" 
+                   placeholder="搜尋檔案..." 
+                   @onkeyup="OnSearchKeyUp" />
+            @if (!string.IsNullOrEmpty(SearchKeyword))
+            {
+                <button class="clear-btn" @onclick="ClearSearch">
+                    <i class="rz-icon rzi-times"></i>
+                </button>
+            }
+        </div>
+    </div>
+    
+    <div class="toolbar-right">
+        <button @onclick="NewFolder" title="新增資料夾">
+            <i class="rz-icon rzi-folder-plus"></i>
+        </button>
+        <button @onclick="Upload" title="上傳檔案">
+            <i class="rz-icon rzi-upload"></i>
+        </button>
+    </div>
 </div>
 
 @code {
+    [Parameter] public bool CanGoUp { get; set; }
     [Parameter] public EventCallback OnRefreshCallback { get; set; }
+    [Parameter] public EventCallback OnGoUpCallback { get; set; }
+    [Parameter] public EventCallback OnNewFolderCallback { get; set; }
+    [Parameter] public EventCallback OnUploadCallback { get; set; }
+    [Parameter] public EventCallback<string> OnSearchCallback { get; set; }
+
+    private string SearchKeyword { get; set; } = "";
 
     private async Task Refresh()
     {
         await OnRefreshCallback.InvokeAsync();
     }
 
-    private Task NewFolder()
+    private async Task GoUp()
     {
-        // TODO: Show dialog
-        return Task.CompletedTask;
+        await OnGoUpCallback.InvokeAsync();
+    }
+
+    private async Task NewFolder()
+    {
+        await OnNewFolderCallback.InvokeAsync();
+    }
+
+    private async Task Upload()
+    {
+        await OnUploadCallback.InvokeAsync();
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await OnSearchCallback.InvokeAsync(SearchKeyword);
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        SearchKeyword = "";
+        await OnSearchCallback.InvokeAsync("");
     }
 }
+
+<style>
+.file-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    gap: 1rem;
+}
+
+.toolbar-left,
+.toolbar-right {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.toolbar-center {
+    flex: 1;
+    max-width: 400px;
+}
+
+.file-toolbar button {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #dee2e6;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.file-toolbar button:hover:not(:disabled) {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.file-toolbar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.file-toolbar button i {
+    font-size: 1.125rem;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 0 0.5rem;
+}
+
+.search-box i {
+    color: #6c757d;
+}
+
+.search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.search-box input::placeholder {
+    color: #adb5bd;
+}
+
+.clear-btn {
+    padding: 0.25rem !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+.clear-btn:hover {
+    background: #e9ecef !important;
+}
+</style>

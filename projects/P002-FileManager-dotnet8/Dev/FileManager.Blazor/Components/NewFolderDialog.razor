@@ -1,0 +1,191 @@
+@namespace FileManager.Blazor.Components
+
+@if (IsVisible)
+{
+    <div class="dialog-overlay" @onclick="Cancel">
+        <div class="dialog-content" @onclick:stopPropagation="true">
+            <h3>📁 新增資料夾</h3>
+            
+            <div class="form-group">
+                <label>資料夾名稱：</label>
+                <input type="text" @bind="FolderName" @bind:event="oninput" 
+                       placeholder="請輸入資料夾名稱" 
+                       @onkeyup="OnKeyUp" />
+            </div>
+            
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="error-message">@ErrorMessage</div>
+            }
+            
+            <div class="dialog-actions">
+                <button class="btn-primary" @onclick="Confirm" disabled="@string.IsNullOrWhiteSpace(FolderName)">
+                    建立
+                </button>
+                <button class="btn-secondary" @onclick="Cancel">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string ParentPath { get; set; } = "/";
+    [Parameter] public EventCallback<string> OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string FolderName { get; set; } = "";
+    private string ErrorMessage { get; set; } = "";
+
+    public void Show(string parentPath)
+    {
+        ParentPath = parentPath;
+        FolderName = "";
+        ErrorMessage = "";
+        IsVisible = true;
+        StateHasChanged();
+    }
+
+    public void Hide()
+    {
+        IsVisible = false;
+        FolderName = "";
+        ErrorMessage = "";
+        StateHasChanged();
+    }
+
+    private async Task Confirm()
+    {
+        if (string.IsNullOrWhiteSpace(FolderName))
+        {
+            ErrorMessage = "請輸入資料夾名稱";
+            return;
+        }
+
+        if (FolderName.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0)
+        {
+            ErrorMessage = "資料夾名稱包含無效字元";
+            return;
+        }
+
+        await OnConfirm.InvokeAsync(FolderName);
+        Hide();
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+        Hide();
+    }
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(FolderName))
+        {
+            await Confirm();
+        }
+        else if (e.Key == "Escape")
+        {
+            await Cancel();
+        }
+    }
+}
+
+<style>
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    min-width: 400px;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-content h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: #0d6efd;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.dialog-actions button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: #0d6efd;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0b5ed7;
+}
+
+.btn-primary:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+    background: #f8f9fa;
+}
+</style>
