@@ -50,32 +50,67 @@ description: 測試規劃與執行。當需要：
 
 ## E2E 截圖流程（必須遵守）
 
-### 截圖前檢查
+### 使用 Playwright 截圖（標準方式）
+
+```python
+# 1. 安裝 Playwright（如果還沒安裝）
+pip install playwright
+playwright install chromium
+
+# 2. Playwright 截圖腳本
+from playwright.sync_api import sync_playwright
+import datetime
+
+def take_screenshot(url, filename):
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        
+        # 導航並截圖
+        response = page.goto(url, wait_until='networkidle')
+        
+        # 驗證 HTTP 200
+        if response.status != 200:
+            print(f"HTTP {response.status} - FAIL")
+            browser.close()
+            return False
+        
+        # 截圖
+        page.screenshot(path=filename, full_page=True)
+        
+        # 驗證內容
+        content = page.content()
+        if "關鍵文字" in content:
+            print(f"Content validated - PASS")
+        else:
+            print(f"Content not found - FAIL")
+        
+        browser.close()
+        return True
+
+# 使用
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+take_screenshot("http://localhost:5000/", f"P002-E2E-001-{timestamp}.png")
+```
+
+### 截圖前檢查（用 curl）
 ```bash
 # 1. 先確認 HTTP 200
 curl -I http://localhost:5000/
 # 若非 200，等 3 秒後重試，最多 3 次
-
-# 2. 截圖
-curl -s http://localhost:5000/ > page.html
-
-# 3. 驗證頁面內容
-grep -i "關鍵文字" page.html
-# 若找不到，判定 Fail
-```
-
-### 截圖命令
-```bash
-# 使用 curl 截圖 HTML
-curl -s http://localhost:5000/ > outputs/圖片名稱.html
-
-# 使用 cutycapt 或 wkhtmltopdf 轉 PNG（如果有安裝）
 ```
 
 ### 截圖命名規則
 ```
 {專案編號}-E2E-{TC編號}-{時間戳}.png
 範例：P002-E2E-001-20260406_002200.png
+```
+
+### 截圖產出位置
+```
+tests/screenshots/
+P002-E2E-001-20260406_002200.png
+P002-E2E-002-20260406_002300.png
 ```
 
 ## 輸出位置
