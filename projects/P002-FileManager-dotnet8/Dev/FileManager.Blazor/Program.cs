@@ -39,6 +39,7 @@ builder.Services.AddRadzenComponents();
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddRazorPages();  // Add Razor Pages for _Host.cshtml
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -57,6 +58,7 @@ app.UseAntiforgery();
 app.UseMiddleware<DebugTraceMiddleware>();
 
 app.MapControllers();
+app.MapRazorPages();  // Map Razor Pages
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
