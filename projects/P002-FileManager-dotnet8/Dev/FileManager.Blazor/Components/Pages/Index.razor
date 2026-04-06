@@ -442,17 +442,37 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Check session
-        var (email, admin) = await SessionService.GetCurrentUserAsync();
+        // Auth check: done in OnAfterRenderAsync only (after circuit connects)
+        // SSR: skip auth, render empty state; circuit will reload after auth check
+        currentPath = GetRootPath();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Only run auth check after circuit is fully connected
+        await Task.Delay(5000);
+
+        string? email = null;
+        bool admin = false;
+        try
+        {
+            (email, admin) = await SessionService.GetCurrentUserAsync();
+        }
+        catch
+        {
+            // Circuit not ready, skip for now (SSR case)
+            return;
+        }
+
         if (string.IsNullOrEmpty(email))
         {
-            Navigation.NavigateTo("/login");
+            Navigation.NavigateTo("/login", forceLoad: true);
             return;
         }
         currentUserEmail = email;
         isAdmin = admin;
-        
-        // Set root path based on user role
         currentPath = GetRootPath();
         await Refresh();
     }

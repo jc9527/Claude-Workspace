@@ -1,5 +1,5 @@
-using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace FileManager.Blazor.Services;
 
@@ -12,30 +12,26 @@ public interface ISessionService
 
 public class SessionService : ISessionService
 {
-    private readonly HttpClient _http;
+    private readonly IJSRuntime _js;
 
-    public SessionService(HttpClient http)
+    public SessionService(IJSRuntime js)
     {
-        _http = http;
+        _js = js;
     }
 
     public async Task<(string? email, bool isAdmin)> GetCurrentUserAsync()
     {
         try
         {
-            var response = await _http.GetAsync("api/auth/session");
-            if (response.IsSuccessStatusCode)
+            var result = await _js.InvokeAsync<SessionResponse>("getCurrentUser");
+            if (result?.IsAuthenticated == true)
             {
-                var result = await response.Content.ReadFromJsonAsync<SessionResponse>();
-                if (result?.IsAuthenticated == true)
-                {
-                    return (result.Email, result.IsAdmin);
-                }
+                return (result.Email, result.IsAdmin);
             }
         }
         catch
         {
-            // Ignore errors
+            // Ignore errors (e.g., circuit not ready)
         }
         return (null, false);
     }
@@ -50,7 +46,7 @@ public class SessionService : ISessionService
     {
         try
         {
-            await _http.PostAsync("api/auth/logout", null);
+            await _js.InvokeVoidAsync("performLogout");
         }
         catch
         {

@@ -20,23 +20,24 @@
         // Login function that handles cookies properly
         window.performLogin = async function(email, password) {
             try {
+                console.log('performLogin called with:', email);
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, password: password }),
-                    credentials: 'include'  // Important: include cookies
+                    credentials: 'include'
                 });
-                
+                console.log('fetch response status:', response.status);
                 const data = await response.json();
-                
+                console.log('fetch data:', JSON.stringify(data));
                 if (data.success) {
+                    window.location.assign('/');
                     return { success: true, message: '' };
                 } else {
                     return { success: false, message: data.message || '登入失敗' };
                 }
             } catch (error) {
+                console.error('performLogin error:', error);
                 return { success: false, message: error.message };
             }
         };
@@ -76,6 +77,22 @@
                     credentials: 'include'
                 });
             } catch { }
+        };
+
+        // Login and redirect - pure JS, no Blazor circuit needed
+        window.performLoginAndRedirect = async function(email, password) {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: password }),
+                credentials: 'include'
+            });
+            if (response.ok) {
+                window.location.assign('/');
+            } else {
+                const data = await response.json();
+                throw new Error(data.error || '登入失敗');
+            }
         };
     </script>
 </body>

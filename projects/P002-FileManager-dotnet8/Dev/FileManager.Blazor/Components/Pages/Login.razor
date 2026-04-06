@@ -73,21 +73,12 @@
 
         try
         {
-            // Use JS interop to make the login request and handle cookies
-            var result = await JS.InvokeAsync<LoginResult>("performLogin", email, password);
-            
-            if (result.Success)
-            {
-                Navigation.NavigateTo("/", forceLoad: true);
-            }
-            else
-            {
-                errorMessage = result.Message;
-            }
+            // Call JS login + navigation directly
+            await JS.InvokeVoidAsync("performLoginAndRedirect", email, password);
         }
         catch (Exception ex)
         {
-            errorMessage = "登入失敗：" + ex.Message;
+            errorMessage = "登入失敗：" + (ex.Message ?? "連線中斷");
         }
         finally
         {
