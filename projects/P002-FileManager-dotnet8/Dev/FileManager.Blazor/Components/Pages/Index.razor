@@ -779,6 +779,25 @@
         Navigation.NavigateTo("/login");
     }
 
+    private void LogOut()
+    {
+        Navigation.NavigateTo("/login");
+    }
+
+    private bool ShouldShowFolder(string folderName)
+    {
+        // Admin can see all folders
+        if (isAdmin) return true;
+        
+        // Regular users only see their own domain folder
+        if (!string.IsNullOrEmpty(currentUserEmail) && currentUserEmail.Contains('@'))
+        {
+            var userDomain = currentUserEmail.Split('@').Last().ToLower();
+            return folderName.ToLower() == userDomain;
+        }
+        return false;
+    }
+
     // ==================== Upload ====================
     private void ShowUploadDialog()
     {
