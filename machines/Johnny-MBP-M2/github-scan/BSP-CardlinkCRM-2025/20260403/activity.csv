@@ -1,0 +1,11 @@
+branch,type,last_commit_date,last_commit_msg,author
+修改後,branch,2025-09-06T15:33:51Z,修正U I對齊行為,Johnny Cheng
+cursor/convert-spec-and-designer-markdown-files-7b25,branch,2025-08-05T17:44:02Z,Create HTML layout for F1_4_1 credit card details screen,Cursor Agent
+origin/cursor/convert-spec-and-designer-markdown-files-7b25,branch,2025-08-05T17:44:02Z,Create HTML layout for F1_4_1 credit card details screen,Cursor Agent
+cursor/transform-layout-and-designer-files-7f77,branch,2025-08-05T17:36:01Z,move files,Johnny Cheng
+origin/cursor/transform-layout-and-designer-files-7f77,branch,2025-08-05T17:36:01Z,move files,Johnny Cheng
+refs/stash,branch,2025-08-05T17:28:41Z,WIP on 修改後: 1efa63a ignore .DS_Store,Johnny Cheng
+origin/修改後,branch,2025-08-05T14:58:10Z,ignore .DS_Store,Johnny Cheng
+main,branch,2025-08-05T14:56:40Z,Create .gitignore,Johnny Cheng
+origin/HEAD,branch,2025-08-05T14:56:40Z,Create .gitignore,Johnny Cheng
+origin/main,branch,2025-08-05T14:56:40Z,Create .gitignore,Johnny Cheng

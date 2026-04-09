@@ -5,3 +5,5 @@ outputs/github-analysis/
 
 # Menu 最近執行 scripts 狀態（本機）
 outputs/.menu-*.json
+machines/.DS_Store
+.DS_Store

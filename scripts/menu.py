@@ -129,7 +129,6 @@ def main() -> int:
     else:
         print("（無腳本）\n")
 
-    n += 1
     print(f"\n{n}. 📁 瀏覽 Workspace 目錄")
 
     return 0
