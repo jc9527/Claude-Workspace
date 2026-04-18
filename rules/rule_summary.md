@@ -1,6 +1,6 @@
 # Rules 摘要
 
-最後更新：2026-04-05
+最後更新：2026-04-18
 
 ## 規範清單
 
@@ -23,3 +23,9 @@
 
 ### 6. multi-agent-workflow.md — Multi-Agent 協作流程
 定義從需求到交付的標準階段順序：BA → SA → SD → Quoter → Dev → QA → DevOps。SA 階段才確定 Repos 與 Applications 的劃分。Coordinator 統一入口，先提案後執行。
+
+### 7. skills/README.md — Skills 觸發規則（強制）
+任務開始前必須對照觸發規則表，確認是否有對應 Skill。有對應 Skill 時，**必須先讀 `SKILL.md` 再執行**，不得跳過。觸發情境：QA/測試 → qa-engineer；需求分析 → business-analyst；架構設計 → system-architect；API/DB 設計 → system-designer；開發實作 → developer；部署 → devops。
+
+### 8. qa-engineer/rules/qa-flow-gates.md — QA 強制關卡
+QA 任務三個 Gate 不得跳關：Gate 1（建立 test_cases/description.md + 龍哥確認）→ Gate 2（腳本語法驗證）→ Gate 3（結果記錄 + description.md 更新）。**未建立 description.md 禁止寫腳本。**

@@ -11,6 +11,23 @@
 | [idea-process.md](idea-process.md) | Idea 處理流程：必須先提供 Plan 與複雜度評估，不可直接執行 |
 | [multi-agent-workflow.md](multi-agent-workflow.md) | Multi-Agent 協作流程：BA→SA→SD→Quoter→Dev→QA→DevOps，階段順序與 Repo/Application 層級結構 |
 
+## Skills 觸發規則
+
+遇到以下情境時，**必須先讀對應的 `skills/*/SKILL.md`** 再執行：
+
+| 情境 | 必讀 Skill |
+|------|-----------|
+| 測試、QA、Bug 回報 | `skills/qa-engineer/SKILL.md` |
+| 需求分析、User Story | `skills/business-analyst/SKILL.md` |
+| 系統架構、Repo 規劃 | `skills/system-architect/SKILL.md` |
+| API/DB/UI 設計 | `skills/system-designer/SKILL.md` |
+| 開發、實作、修 Bug | `skills/developer/SKILL.md` |
+| 部署、CI/CD | `skills/devops/SKILL.md` |
+
+完整觸發規則見 `skills/README.md`。
+
+---
+
 ## 使用方式
 
 - 新任務開始時：請 AI **先讀** `rules/README.md`，再依需求開啟上述檔案。

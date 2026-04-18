@@ -1,5 +1,16 @@
 # 測試案例模板
 
+## P003 存放路徑
+
+```
+QA/test_cases/{功能ID}/description.md     ← 測試案例文件（本模板）
+QA/test_cases/{功能ID}/screenshots/       ← E2E 截圖
+QA/p003_test_v{版本}_{功能}.py            ← 測試腳本（Gate 1 通過後才建）
+QA/TestV{版本}-{功能}-{日期}-R{輪次}/     ← 執行結果
+```
+
+---
+
 ---
 
 ## 基本格式
